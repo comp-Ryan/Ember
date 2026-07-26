@@ -19,17 +19,24 @@ impl VoiceControls.toggleRecording -> None {
 
 impl VoiceControls.handle_transcript(text: str) -> None {
     transcript = text;
-    result = root spawn SendMessage(text=text);
-    if result.reports and len(result.reports) > 0 {
-        chat = result.reports[0];
-        reply = chat.reply;
-        history = history + [
-            {"speaker": "user", "text": text},
-            {"speaker": "ember", "text": chat.reply}
-        ];
-        onHistoryChange(history);
-        onMoodChange(chat.mood);
-        speak(chat.reply);
+    try {
+        result = root spawn SendMessage(text=text);
+        if result.reports and len(result.reports) > 0 {
+            chat = result.reports[0];
+            reply = chat.reply;
+            history = history + [
+                {"speaker": "user", "text": text},
+                {"speaker": "ember", "text": chat.reply}
+            ];
+            onHistoryChange(history);
+            onMoodChange(chat.mood);
+            speak(chat.reply);
+        }
+    } except Exception {
+        fallback = "Sorry, I'm having a little trouble right now - mind trying that again?";
+        reply = fallback;
+        onSpeakingChange(False);
+        speak(fallback);
     }
 }
 
