@@ -27,6 +27,16 @@ typescript = "^5.3.3"
 [dev-dependencies]
 watchdog = ">=3.0.0"
 
+[byllm.model]
+api_key = "${LLM_API_KEY}"
+default_model = "${LLM_MODEL:-gpt-4o-mini}"
+
+[check]
+# Browser-global interop (window.*, new(SpeechRecognition/SynthesisUtterance, ...))
+# has no typed stubs in the checker yet - correct at runtime, jac-cl-js-interop
+# guide's documented false positive. See VoiceControls.cl.jac / .impl.jac.
+suppress = ["E1030", "E1031", "E1053"]
+
 [serve]
 base_route_app = "app"
 
