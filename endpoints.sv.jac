@@ -81,6 +81,12 @@ node MemoryFact {
         created_at: str;
 }
 
+node CheckIn {
+    has mood_score: int,
+        snippet: str,
+        timestamp: str;
+}
+
 obj ChatReply {
     has reply: str,
         mood: str;
@@ -102,19 +108,38 @@ sem ChatReply.mood = "The emotional tone of the conversation so far, exactly one
 obj EmberTurn {
     has reply: str,
         mood: str,
-        confirmed_medication: str;
+        confirmed_medication: str,
+        checkin_mood_score: int,
+        checkin_snippet: str;
 }
 
 sem EmberTurn.reply = "Ember's spoken reply to the user - short, specific to what they actually said, and phrased the way a real person talks out loud, in her caring-companion voice. Never robotic or clinical, never jargon, never a stock therapist line like 'it's okay to feel that way' or 'I'm here for you.' If due_medications lists something not yet confirmed taken this turn, naturally work a mention into the reply - casual, like a companion who happens to remember, e.g. 'Before we chat more, don't forget your morning insulin - have you taken it yet?' - never a clinical alert, and don't repeat the same reminder verbatim if history shows it was already brought up recently. If the user's latest message confirms they just took a due medication, don't remind them of it again - warmly acknowledge that instead.";
 sem EmberTurn.mood = "The emotional tone of the conversation so far, exactly one of: calm, cheerful, concerned.";
 sem EmberTurn.confirmed_medication = "Set this field ONLY when the user's latest message states or implies they just took one of the medications listed in due_medications (trigger phrases include things like 'yes I took it', 'just took my insulin', 'I already did that'). The value must be copied EXACTLY, character for character, from the 'name' portion of the matching due_medications entry (e.g. 'Lispro Insulin') - never the user's own words, never a paraphrase, never the trigger phrase itself. If nothing in the user's message confirms taking a medication, this must be the empty string \"\".";
+sem EmberTurn.checkin_mood_score = "If the user's latest message shares how they're feeling or how their day/life is going (emotionally, not just neutral factual chit-chat like asking the time), rate their mood on a 1-5 scale: 1 = very distressed or down, 2 = somewhat down or struggling, 3 = neutral/okay, 4 = good, 5 = great. If the message doesn't share anything about their mood or how their day is going, this must be exactly 0.";
+sem EmberTurn.checkin_snippet = "A short, neutral, third-person summary of what the user shared about their mood or day, suitable for a private wellness log (e.g. 'Feeling lonely and low energy today.'). Empty string \"\" if checkin_mood_score is 0.";
 
 def generate_reply(tone: str, history: list[str], message: str, due_medications: list[str]) -> EmberTurn by llm();
-sem generate_reply = "Ember is a real companion talking to someone she knows, not a wellness app or a therapist. Write her natural, spoken reply to the user's latest message: react like an actual person would in conversation - pick up on a specific detail in what they said, and respond with genuine personality, maybe a small observation, a memory, or a real follow-up question, instead of a generic reassurance. Speak in the given persona tone and use the conversation history for context, but do not fall back on scripted comfort phrases ('it's okay to feel that way', 'I'm here for you', 'that sounds difficult', 'thank you for sharing that') - a real friend wouldn't talk like a hotline script. Weave in any due medications naturally per EmberTurn.reply's guidance, and recognize when the user confirms taking one. Then judge the overall mood of the conversation.";
+sem generate_reply = "Ember is a real companion talking to someone she knows, not a wellness app or a therapist. Write her natural, spoken reply to the user's latest message: react like an actual person would in conversation - pick up on a specific detail in what they said, and respond with genuine personality, maybe a small observation, a memory, or a real follow-up question, instead of a generic reassurance. Speak in the given persona tone and use the conversation history for context, but do not fall back on scripted comfort phrases ('it's okay to feel that way', 'I'm here for you', 'that sounds difficult', 'thank you for sharing that') - a real friend wouldn't talk like a hotline script. Weave in any due medications naturally per EmberTurn.reply's guidance, and recognize when the user confirms taking one. Separately, and without changing how you phrase your reply, assess whether the user's latest message shares how they're feeling or how their day is going, for a private wellness check-in log. Then judge the overall mood of the conversation.";
 sem generate_reply.tone = "Ember's persona - how she should sound, e.g. warm, patient, simple everyday language, never robotic or clinical, like a caring companion.";
 sem generate_reply.history = "Recent conversation turns as 'speaker: text' lines, oldest first, ending with the user's latest message.";
 sem generate_reply.message = "The user's latest message, which Ember is replying to.";
 sem generate_reply.due_medications = "Medications currently due, each formatted as 'name (dosage) - scheduled for schedule_time'. Empty list if nothing is due right now.";
+
+def log_checkin(mood_score: int, snippet: str) -> CheckInResult {
+    checkin = root ++> CheckIn(
+        mood_score=mood_score,
+        snippet=snippet,
+        timestamp=datetime.now().isoformat()
+    );
+    past = [n for n in [root -->] if isinstance(n, CheckIn)];
+    recent = past[-3:];
+    low_count = len([c for c in recent if c.mood_score <= 2]);
+    return CheckInResult(
+        check_in_id=jid(checkin),
+        alert_raised=(low_count >= 2)
+    );
+}
 
 walker:pub SendMessage {
     """Generate Ember's reply with an LLM, grounded in her persona, recent history, and any due medications."""
@@ -148,6 +173,10 @@ walker:pub SendMessage {
                 matched[0].is_due = False;
                 matched[0].last_taken = datetime.now().strftime("%Y-%m-%d");
             }
+        }
+
+        if turn.checkin_mood_score > 0 {
+            log_checkin(mood_score=turn.checkin_mood_score, snippet=turn.checkin_snippet);
         }
 
         chat = ChatReply(reply=turn.reply, mood=turn.mood);
@@ -209,16 +238,13 @@ walker:pub LogMedicationTaken {
 }
 
 walker:pub LogCheckIn {
-    """Mock wellness check-in. Real alerting logic is future track work."""
+    """Persist a wellness check-in; alert_raised flags a pattern of low mood across recent check-ins."""
     has mood_score: int,
         snippet: str,
         reports: list[CheckInResult] = [];
 
     can log with Root entry {
-        report CheckInResult(
-            check_in_id="mock-checkin-0001",
-            alert_raised=(self.mood_score <= 2)
-        );
+        report log_checkin(mood_score=self.mood_score, snippet=self.snippet);
     }
 }
 
