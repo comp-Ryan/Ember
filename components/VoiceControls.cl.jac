@@ -54,7 +54,8 @@ def:pub VoiceControls(onSpeakingChange: Callable[[bool], None]) -> JsxElement {
                 "alignItems": "center",
                 "gap": "1rem",
                 "padding": "1rem",
-                "minWidth": "260px"
+                "width": "264px",
+                "boxSizing": "border-box"
             }}
         >
             <button
@@ -75,10 +76,10 @@ def:pub VoiceControls(onSpeakingChange: Callable[[bool], None]) -> JsxElement {
             <p style={{"color": "#666", "textAlign": "center"}}>
                 {"Listening... (speech-to-text placeholder)" if isRecording else "Tap to talk to Ember"}
             </p>
-            <p style={{"fontStyle": "italic", "color": "#888", "minHeight": "1.2rem"}}>
+            <p style={{"fontStyle": "italic", "color": "#888", "minHeight": "1.2rem", "overflowWrap": "break-word", "margin": "0"}}>
                 {transcript}
             </p>
-            <p style={{"color": "#1a1a2e", "minHeight": "1.2rem"}}>
+            <p style={{"color": "#1a1a2e", "minHeight": "1.2rem", "overflowWrap": "break-word", "margin": "0"}}>
                 {reply}
             </p>
         </div>;
