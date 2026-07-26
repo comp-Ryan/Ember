@@ -18,6 +18,8 @@ transcript without this file importing it directly.
 """
 
 sv import from endpoints { SendMessage }
+import from "thinking-orbs" { ThinkingOrb }
+import from react { useRef }
 
 glob _recognition: any = None;
 
@@ -31,6 +33,10 @@ def:pub VoiceControls(
         reply: str = "",
         history: list = [];
 
+    requestInFlightRef = useRef(False);
+    lastHandledTranscriptRef = useRef("");
+    pendingTranscriptRef = useRef("");
+
     can with entry {
         SpeechRecognitionCls = window.SpeechRecognition if window.SpeechRecognition else window.webkitSpeechRecognition;
         if not SpeechRecognitionCls {
@@ -38,17 +44,27 @@ def:pub VoiceControls(
         }
         recognition = new(SpeechRecognitionCls);
         recognition.continuous = False;
-        recognition.interimResults = False;
+        # Show interim words locally, but do not call the backend until
+        # `onend` says the utterance is complete.
+        recognition.interimResults = True;
         recognition.lang = "en-US";
         recognition.onresult = lambda (e: any) {
-            handle_transcript(e.results[0][0].transcript);
+            heard = e.results[0][0].transcript;
+            pendingTranscriptRef.current = heard;
+            transcript = heard;
         };
         recognition.onerror = lambda (_: any) {
+            pendingTranscriptRef.current = "";
             isRecording = False;
             transcript = "(couldn't hear that - try again)";
         };
         recognition.onend = lambda {
             isRecording = False;
+            completed = pendingTranscriptRef.current;
+            pendingTranscriptRef.current = "";
+            if completed {
+                handle_transcript(completed);
+            }
         };
         _recognition = recognition;
     }
@@ -71,18 +87,20 @@ def:pub VoiceControls(
         >
             <button
                 onClick={toggleRecording}
+                aria-label={"Stop" if isRecording else "Talk"}
                 style={{
                     "width": "72px",
                     "height": "72px",
                     "borderRadius": "50%",
                     "border": "none",
                     "cursor": "pointer",
-                    "backgroundColor": "#e63946" if isRecording else "#4CAF50",
-                    "color": "white",
-                    "fontSize": "0.9rem"
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "center",
+                    "backgroundColor": "#e63946" if isRecording else "#4CAF50"
                 }}
             >
-                {"Stop" if isRecording else "Talk"}
+                <ThinkingOrb state="listening" size={64} theme="light" paused={not isRecording}/>
             </button>
             <p style={{"color": "#666", "textAlign": "center"}}>
                 {"Listening... (speech-to-text placeholder)" if isRecording else "Tap to talk to Ember"}

@@ -13,11 +13,18 @@ impl VoiceControls.toggleRecording -> None {
         isRecording = True;
         transcript = "";
         reply = "";
+        pendingTranscriptRef.current = "";
+        lastHandledTranscriptRef.current = "";
         _recognition.start();
     }
 }
 
 impl VoiceControls.handle_transcript(text: str) -> None {
+    if requestInFlightRef.current or text == lastHandledTranscriptRef.current {
+        return;
+    }
+    lastHandledTranscriptRef.current = text;
+    requestInFlightRef.current = True;
     transcript = text;
     try {
         result = root spawn SendMessage(text=text);
@@ -37,6 +44,8 @@ impl VoiceControls.handle_transcript(text: str) -> None {
         reply = fallback;
         onSpeakingChange(False);
         speak(fallback);
+    } finally {
+        requestInFlightRef.current = False;
     }
 }
 

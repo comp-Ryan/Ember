@@ -11,21 +11,29 @@ fallback on error) instead of a blank canvas or an uncaught exception.
 Shares AvatarView's `isSpeaking` / `mood` contract so swapping 2D/3D is a
 drop-in choice for the parent. The heavy one-time setup (scene, camera,
 renderer, loading the model) runs once on mount; mood/isSpeaking changes
-afterward only tweak the already-live scene (light color/intensity, idle
-rotation speed) rather than tearing down and reloading the 8MB model on
+afterward only tweak the already-live scene (light color/intensity and
+mouth morph targets) rather than tearing down and reloading the 8MB model on
 every mood swap or every time the mic starts/stops.
 
-Static-asset note: this expects harry.glb to be served from `/harry.glb`
-(project-root `public/harry.glb` - Vite's default static-asset convention,
-since `.jac/client` is a Vite dev server under the hood). If it 404s in
-your build, MODEL_URL below is the one line to change.
+Static-asset note: this expects harry.glb to be served from
+`/static/harry.glb`. The dev Vite server (`.jac/client/configs/
+vite.dev.config.js`) turns off Vite's own `public/` convention
+(`publicDir: false`) and instead proxies `/static/*` to the Python
+backend, which serves project-root `assets/<name>` for any `/static/<name>`
+request regardless of extension - unlike its generic asset route, which
+only serves recognized extensions and would silently reject `.glb`. So the
+model lives at project-root `assets/harry.glb`, not `public/`. If it 404s
+in your build, MODEL_URL below is the one line to change.
 """
 
 import from react { useEffect, useRef }
-import from three { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, Color }
+import from three {
+    Scene, PerspectiveCamera, WebGLRenderer, AmbientLight,
+    DirectionalLight, Color
+}
 import from "three/examples/jsm/loaders/GLTFLoader.js" { GLTFLoader }
 
-glob MODEL_URL: str = "/harry.glb";
+glob MODEL_URL: str = "/static/harry.glb";
 
 def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
     has isLoading: bool = True,
@@ -35,17 +43,16 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
 
     # Same idle-vs-speaking language as AvatarView's 2D pulse: mood tints
     # the light while idle, speaking always brightens to the same warm
-    # amber-ish tone and speeds up the idle rotation - never the reverse,
+    # amber-ish tone and animates the model's real mouthOpen morph - never the reverse,
     # so "is Ember talking?" reads the same way across every mood here too.
     mood_light_colors = {"calm": 0x9fd3e6, "cheerful": 0xffc9a3, "concerned": 0xb8c2d1};
     light_color = 0xffe08a if isSpeaking else mood_light_colors[mood_key];
     light_intensity = 1.6 if isSpeaking else 1.0;
-    rotate_speed = 0.03 if isSpeaking else 0.008;
 
     mountRef = useRef(None);
     lightRef = useRef(None);
-    modelRef = useRef(None);
-    rotateSpeedRef = useRef(0.008);
+    mouthMeshesRef = useRef([]);
+    speakingRef = useRef(False);
 
     # Mount-once: build the scene, start loading the model, start the
     # render loop. Deliberately empty deps - this must not re-run when
@@ -58,8 +65,11 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
 
         try {
             scene = new(Scene);
-            camera = new(PerspectiveCamera, 40, 1, 0.1, 100);
-            camera.position.set(0, 1.4, 2.6);
+            # Close head-and-shoulders framing instead of showing the
+            # avatar's full body.
+            camera = new(PerspectiveCamera, 40, 280 / 320, 0.1, 100);
+            camera.position.set(0, 1.52, 1.1);
+            camera.lookAt(0, 1.52, 0);
 
             renderer = new(WebGLRenderer, {"antialias": True, "alpha": True});
             renderer.setSize(280, 320);
@@ -78,9 +88,11 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 MODEL_URL,
                 lambda (gltf: any) {
                     model = gltf.scene;
-                    model.position.set(0, -1.1, 0);
+                    model.position.set(0, 0, 0);
                     scene.add(model);
-                    modelRef.current = model;
+                    head = model.getObjectByName("Wolf3D_Head");
+                    teeth = model.getObjectByName("Wolf3D_Teeth");
+                    mouthMeshesRef.current = [part for part in [head, teeth] if part];
                     isLoading = False;
                 },
                 None,
@@ -90,13 +102,22 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 }
             );
 
+            mouth_open = False;
             timer = setInterval(lambda {
-                model = modelRef.current;
-                if model {
-                    model.rotation.y += rotateSpeedRef.current;
+                mouth_amount = 0.0;
+                if speakingRef.current {
+                    mouth_open = not mouth_open;
+                    mouth_amount = 0.68 if mouth_open else 0.12;
+                } else {
+                    mouth_open = False;
+                }
+                for raw_mesh in mouthMeshesRef.current {
+                    mesh = raw_mesh as any;
+                    mouth_index = mesh.morphTargetDictionary["mouthOpen"];
+                    mesh.morphTargetInfluences[mouth_index] = mouth_amount;
                 }
                 renderer.render(scene, camera);
-            }, 33);
+            }, 80);
 
             return lambda {
                 clearInterval(timer);
@@ -120,7 +141,14 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
             light.color = new(Color, light_color);
             light.intensity = light_intensity;
         }
-        rotateSpeedRef.current = rotate_speed;
+        speakingRef.current = isSpeaking;
+        if not isSpeaking {
+            for raw_mesh in mouthMeshesRef.current {
+                mesh = raw_mesh as any;
+                mouth_index = mesh.morphTargetDictionary["mouthOpen"];
+                mesh.morphTargetInfluences[mouth_index] = 0.0;
+            }
+        }
         return lambda { };
     }, [mood_key, isSpeaking]);
 
