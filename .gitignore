@@ -3,3 +3,7 @@ node_modules/
 .vscode/
 .idea/
 .env
+
+# harry.glb embeds all its textures as binary bufferViews already;
+# this loose unpacked copy is only useful for re-editing in Blender.
+ready-player-me-harry-potter/textures/

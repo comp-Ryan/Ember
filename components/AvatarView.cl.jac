@@ -5,35 +5,71 @@ owned entirely by this file: the original calm breathing circle, and Fox, a
 warm critter face built from plain nested divs and inline styles (no image
 assets, no separate stylesheet - same one-file rule as the rest of this
 component). Swap in a third rendering later the same way, without touching
-anything outside this file. The only contract this component has with the
-rest of the app is the `isSpeaking` prop: a slow gentle breathing pulse
-while false, a faster brighter pulse while true - Fox also gets a talking
-mouth on top of that same pulse.
+anything outside this file. This component's contract with the rest of the
+app is two props: `isSpeaking` (a slow gentle breathing pulse while false, a
+faster brighter pulse while true - Fox also gets a talking mouth on top of
+that same pulse) and `mood` (tints the idle/listening pulse's color and
+pace - "calm" / "cheerful" / "concerned" - and defaults to "calm" if omitted
+or unrecognized).
 
 Large, high-contrast, and free of small/busy detail on purpose - built for
 elderly users who need the "is Ember talking?" state readable at a glance.
+Mood only reshapes the idle pulse, never the speaking one: the amber
+"I'm talking" cue stays identical across every mood so it never competes
+with mood's much subtler color/tempo shifts, and no mood pushes the pulse
+fast or bright enough to read as alarming.
+
 The pulse is driven by a setInterval-toggled scale + CSS transition (not
 CSS keyframes/a stylesheet), so it needs nothing beyond this one file.
 """
 
 import from react { useEffect }
 
-def:pub AvatarView(isSpeaking: bool) -> JsxElement {
+def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
     has pulsedUp: bool = False,
         avatarStyle: str = "circle";
 
+    mood_key = mood if mood in ["calm", "cheerful", "concerned"] else "calm";
+
+    # Idle-only presets. Speaking always uses the fixed amber values below,
+    # regardless of mood, so "is Ember talking?" stays a reliable, constant cue.
+    mood_presets = {
+        "calm": {
+            "color": "#219ebc", "ring_rgb": "33, 158, 188",
+            "period": 1600, "amp": 1.04,
+            "ring_lo": 14, "ring_hi": 20,
+            "alpha_lo": 0.15, "alpha_hi": 0.22,
+            "transition": "1.5s"
+        },
+        "cheerful": {
+            "color": "#f4845c", "ring_rgb": "244, 132, 92",
+            "period": 1300, "amp": 1.07,
+            "ring_lo": 16, "ring_hi": 24,
+            "alpha_lo": 0.18, "alpha_hi": 0.27,
+            "transition": "1.15s"
+        },
+        "concerned": {
+            "color": "#7d8fa6", "ring_rgb": "125, 143, 166",
+            "period": 2200, "amp": 1.02,
+            "ring_lo": 10, "ring_hi": 14,
+            "alpha_lo": 0.11, "alpha_hi": 0.15,
+            "transition": "2.0s"
+        }
+    };
+    preset = mood_presets[mood_key];
+
     useEffect(lambda {
-        period = 350 if isSpeaking else 1600;
+        period = 350 if isSpeaking else preset["period"];
         timer = setInterval(lambda { pulsedUp = not pulsedUp; }, period);
         return lambda { clearInterval(timer); };
-    }, [isSpeaking]);
+    }, [isSpeaking, mood_key]);
 
-    scale = (1.18 if pulsedUp else 1.0) if isSpeaking else (1.04 if pulsedUp else 1.0);
-    ring_spread = (34 if pulsedUp else 18) if isSpeaking else (20 if pulsedUp else 14);
-    ring_alpha = (0.42 if pulsedUp else 0.28) if isSpeaking else (0.22 if pulsedUp else 0.15);
-    ring_rgb = "255, 183, 3" if isSpeaking else "33, 158, 188";
-    transition_duration = "0.32s" if isSpeaking else "1.5s";
-    circle_color = "#ffb703" if isSpeaking else "#219ebc";
+    scale = (1.18 if pulsedUp else 1.0) if isSpeaking else (preset["amp"] if pulsedUp else 1.0);
+    ring_spread = (34 if pulsedUp else 18) if isSpeaking else (preset["ring_hi"] if pulsedUp else preset["ring_lo"]);
+    ring_alpha = (0.42 if pulsedUp else 0.28) if isSpeaking else (preset["alpha_hi"] if pulsedUp else preset["alpha_lo"]);
+    ring_rgb = "255, 183, 3" if isSpeaking else preset["ring_rgb"];
+    transition_duration = "0.32s" if isSpeaking else preset["transition"];
+    circle_color = "#ffb703" if isSpeaking else preset["color"];
     box_shadow = f"0 0 0 {ring_spread}px rgba({ring_rgb}, {ring_alpha})";
     mouth_height = (22 if pulsedUp else 10) if isSpeaking else 10;
 
@@ -354,7 +390,9 @@ def:pub AvatarView(isSpeaking: bool) -> JsxElement {
                     Fox
                 </button>
             </div>
-            {circle_view if avatarStyle == "circle" else fox_view}
+            <div style={{"padding": "2.75rem 0"}}>
+                {circle_view if avatarStyle == "circle" else fox_view}
+            </div>
             <p style={{"color": "#333", "fontSize": "1.25rem", "fontWeight": "600"}}>
                 {"Ember is speaking..." if isSpeaking else "Ember is listening"}
             </p>
