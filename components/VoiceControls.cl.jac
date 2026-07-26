@@ -1,24 +1,50 @@
 """Ember's voice interface (voice track boundary).
 
-Mic button + speech-to-text placeholder + Ember's spoken reply. Speech
-capture and playback are both mocked for now - swap `toggleRecording`'s
-body for a real STT/TTS provider later without touching anything outside
-this file (see .env.example for where those provider keys will go).
+Mic button wired to the browser's Web Speech API: SpeechRecognition for
+speech-to-text, speechSynthesis for text-to-speech playback of Ember's
+reply. Swap either provider out later without touching anything outside
+this file (see .env.example for where dedicated provider keys will go).
 
 Calls `root spawn SendMessage(text)` on the shared `endpoints.sv.jac` seam
-and reports the reply back up to the parent via `onSpeakingChange`, which
-is how this file and AvatarView.cl.jac react to each other without
-importing each other directly.
+and reports the speaking state back up to the parent via
+`onSpeakingChange`, which is how this file and AvatarView.cl.jac react to
+each other without importing each other directly.
 """
 
 sv import from endpoints { SendMessage }
 
-def:pub VoiceControls(onSpeakingChange: Callable) -> JsxElement {
+glob _recognition: any = None;
+
+def:pub VoiceControls(onSpeakingChange: Callable[[bool], None]) -> JsxElement {
     has isRecording: bool = False,
         transcript: str = "",
         reply: str = "";
 
+    can with entry {
+        SpeechRecognitionCls = window.SpeechRecognition if window.SpeechRecognition else window.webkitSpeechRecognition;
+        if not SpeechRecognitionCls {
+            return;
+        }
+        recognition = new(SpeechRecognitionCls);
+        recognition.continuous = False;
+        recognition.interimResults = False;
+        recognition.lang = "en-US";
+        recognition.onresult = lambda (e: any) {
+            handle_transcript(e.results[0][0].transcript);
+        };
+        recognition.onerror = lambda (_: any) {
+            isRecording = False;
+            transcript = "(couldn't hear that - try again)";
+        };
+        recognition.onend = lambda {
+            isRecording = False;
+        };
+        _recognition = recognition;
+    }
+
     async def toggleRecording -> None;
+    async def handle_transcript(text: str) -> None;
+    def speak(text: str) -> None;
 
     return
         <div

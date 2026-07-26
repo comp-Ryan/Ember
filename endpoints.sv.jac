@@ -12,6 +12,8 @@ The walkers report `Message` nodes directly. Typing `reports` as
 so the UI gets `.author` / `.text` dot access instead of untyped dict keys.
 """
 
+import from datetime { datetime }
+
 node Message {
     has author: str,
         text: str;
@@ -47,11 +49,12 @@ walker:pub ListMessages {
 # tracks. These node types and walker signatures are the seam between the
 # two tracks: don't change them later without both people agreeing first.
 #
-# Every walker below is a stub that returns realistic mock data - no real
-# LLM calls and no real persistence/mutation logic yet. MedicationItem and
-# MemoryFact mock records are seeded onto the shared root (see SeedDemoData
-# and the `with entry` block at the bottom) so both tracks have real,
-# queryable fixture data to build against instead of hardcoded literals.
+# SendMessage is now wired to a real LLM call and persists ConversationTurn
+# history on the graph. Every other walker below is still a stub that
+# returns realistic mock data. MedicationItem and MemoryFact mock records
+# are seeded onto the shared root (see SeedDemoData and the `with entry`
+# block at the bottom) so both tracks have real, queryable fixture data to
+# build against instead of hardcoded literals.
 # ---------------------------------------------------------------------------
 
 node PersonaNode {
@@ -93,16 +96,45 @@ obj CheckInResult {
         alert_raised: bool;
 }
 
+sem ChatReply.reply = "Ember's spoken reply to the user - short, specific to what they actually said, and phrased the way a real person talks out loud, in her caring-companion voice. Never robotic or clinical, never jargon, and never a stock therapist line like 'it's okay to feel that way' or 'I'm here for you.'";
+sem ChatReply.mood = "The emotional tone of the conversation so far, exactly one of: calm, cheerful, concerned.";
+
+def generate_reply(tone: str, history: list[str], message: str) -> ChatReply by llm();
+sem generate_reply = "Ember is a real companion talking to someone she knows, not a wellness app or a therapist. Write her natural, spoken reply to the user's latest message: react like an actual person would in conversation - pick up on a specific detail in what they said, and respond with genuine personality, maybe a small observation, a memory, or a real follow-up question, instead of a generic reassurance. Speak in the given persona tone and use the conversation history for context, but do not fall back on scripted comfort phrases ('it's okay to feel that way', 'I'm here for you', 'that sounds difficult', 'thank you for sharing that') - a real friend wouldn't talk like a hotline script. Then judge the overall mood of the conversation.";
+sem generate_reply.tone = "Ember's persona - how she should sound, e.g. warm, patient, simple everyday language, never robotic or clinical, like a caring companion.";
+sem generate_reply.history = "Recent conversation turns as 'speaker: text' lines, oldest first, ending with the user's latest message.";
+sem generate_reply.message = "The user's latest message, which Ember is replying to.";
+
 walker:pub SendMessage {
-    """Mock conversational reply. Real LLM wiring is future track work."""
+    """Generate Ember's reply with an LLM, grounded in her persona and recent history."""
     has text: str,
         reports: list[ChatReply] = [];
 
     can respond with Root entry {
-        report ChatReply(
-            reply=f"(mock) Got it - you said: \"{self.text}\". I'm still a stub!",
-            mood="content"
+        root spawn SeedDemoData();
+
+        personas = [n for n in [-->] if isinstance(n, PersonaNode)];
+        tone = personas[0].tone if len(personas) > 0 else "warm and caring";
+
+        here ++> ConversationTurn(
+            speaker="user",
+            text=self.text,
+            timestamp=datetime.now().isoformat()
         );
+
+        turns = [n for n in [-->] if isinstance(n, ConversationTurn)];
+        recent = turns[-8:];
+        history = [f"{t.speaker}: {t.text}" for t in recent];
+
+        chat = generate_reply(tone=tone, history=history, message=self.text);
+
+        here ++> ConversationTurn(
+            speaker="ember",
+            text=chat.reply,
+            timestamp=datetime.now().isoformat()
+        );
+
+        report chat;
     }
 }
 
@@ -159,6 +191,12 @@ walker:pub LogCheckIn {
 walker SeedDemoData {
     """Idempotently seed demo MedicationItem / MemoryFact fixtures onto root."""
     can seed with Root entry {
+        existing_persona = [n for n in [-->] if isinstance(n, PersonaNode)];
+        if len(existing_persona) == 0 {
+            here ++> PersonaNode(
+                tone="warm, patient, uses simple everyday language - never robotic or clinical, speaks like a caring companion and avoids jargon"
+            );
+        }
         existing_meds = [n for n in [-->] if isinstance(n, MedicationItem)];
         if len(existing_meds) == 0 {
             here ++> MedicationItem(
