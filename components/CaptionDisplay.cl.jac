@@ -58,21 +58,35 @@ def:pub CaptionDisplay(history: list) -> JsxElement {
                     }}
                 >
                     Reminder
-                </span> if has_reminder[i] else None
+                </span> if has_reminder[i] else (
+                    None if is_user[i] else
+                    <span
+                        style={{
+                            "display": "inline-block",
+                            "marginBottom": "0.3rem",
+                            "fontSize": "0.85rem",
+                            "fontWeight": "700",
+                            "color": "#a5652e",
+                            "letterSpacing": "0.02em"
+                        }}
+                    >
+                        Ember
+                    </span>
+                )
             }
             <div
                 style={{
                     "maxWidth": "88%",
                     "boxSizing": "border-box",
                     "padding": "0.65rem 1rem",
-                    "borderRadius": "16px",
+                    "borderRadius": "12px",
                     "fontSize": "1.05rem",
                     "lineHeight": "1.45",
                     "fontWeight": "500",
                     "overflowWrap": "break-word",
-                    "backgroundColor": "#219ebc" if is_user[i] else ("#fff3dd" if has_reminder[i] else "#eef2f3"),
-                    "color": "#fff" if is_user[i] else "#1a1a2e",
-                    "border": "none" if is_user[i] else ("2px solid #f4a259" if has_reminder[i] else "2px solid transparent")
+                    "backgroundColor": "#eaf6fb" if is_user[i] else ("#fff3dd" if has_reminder[i] else "#fdf3e7"),
+                    "color": "#123244" if is_user[i] else "#1a1a2e",
+                    "border": "2px solid #219ebc" if is_user[i] else ("2px solid #f4a259" if has_reminder[i] else "2px solid #a5652e")
                 }}
             >
                 {history[i]["text"]}
