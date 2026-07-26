@@ -1,9 +1,11 @@
 """Ember's voice interface (voice track boundary).
 
-Mic button wired to the browser's Web Speech API: SpeechRecognition for
-speech-to-text, speechSynthesis for text-to-speech playback of Ember's
-reply. Swap either provider out later without touching anything outside
-this file (see .env.example for where dedicated provider keys will go).
+Mic button wired to the browser's Web Speech API (SpeechRecognition) for
+speech-to-text. Text-to-speech playback of Ember's reply goes through the
+ElevenLabs API instead of the browser's speechSynthesis - see
+TextToSpeech.sv.jac, which keeps the API key server-side and hands back
+base64 audio for this file to play. Swap either provider out later without
+touching anything outside this file (see .env.example for provider keys).
 
 Calls `root spawn SendMessage(text)` on the shared `endpoints.sv.jac` seam
 and reports the speaking state back up to the parent via
@@ -18,6 +20,7 @@ transcript without this file importing it directly.
 """
 
 sv import from endpoints { SendMessage }
+sv import from .TextToSpeech { text_to_speech_audio }
 
 glob _recognition: any = None;
 
@@ -55,7 +58,7 @@ def:pub VoiceControls(
 
     async def toggleRecording -> None;
     async def handle_transcript(text: str) -> None;
-    def speak(text: str) -> None;
+    async def speak(text: str) -> None;
 
     return
         <div

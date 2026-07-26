@@ -7,6 +7,7 @@ import from endpoints {
     Message, PostMessage, ListMessages,
     SendMessage, GetDueMedications, LogMedicationTaken, LogCheckIn
 }
+import from components.TextToSpeech { text_to_speech_audio }
 
 # Client-side UI
 cl {
