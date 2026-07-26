@@ -29,7 +29,11 @@ def:pub text_to_speech_audio(text: str) -> str {
     body = {
         "text": text,
         "model_id": "eleven_multilingual_v2",
-        "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+        # Lower stability = more expressive/varied delivery instead of flat and
+        # monotone; higher similarity_boost = leans further into this voice's
+        # own natural warmth rather than a neutral average. Tuned for a
+        # warmer, less clinical-sounding companion voice.
+        "voice_settings": {"stability": 0.35, "similarity_boost": 0.85}
     };
     response = httpx.post(url, headers=headers, json=body, timeout=15.0);
     response.raise_for_status();
