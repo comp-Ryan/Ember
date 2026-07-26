@@ -8,17 +8,28 @@ this file (see .env.example for where dedicated provider keys will go).
 Calls `root spawn SendMessage(text)` on the shared `endpoints.sv.jac` seam
 and reports the speaking state back up to the parent via
 `onSpeakingChange`, which is how this file and AvatarView.cl.jac react to
-each other without importing each other directly.
+each other without importing each other directly. `onMoodChange` reports
+the same ChatReply's `.mood` field back up too, which is how AvatarView's
+mood gets real data without this file importing it directly.
+`onHistoryChange` reports the full running list of `{"speaker", "text"}`
+turns (both what the user said and what Ember replied) back up every
+turn, which is how CaptionDisplay.cl.jac renders a whole-conversation
+transcript without this file importing it directly.
 """
 
 sv import from endpoints { SendMessage }
 
 glob _recognition: any = None;
 
-def:pub VoiceControls(onSpeakingChange: Callable[[bool], None]) -> JsxElement {
+def:pub VoiceControls(
+    onSpeakingChange: Callable[[bool], None],
+    onHistoryChange: Callable[[list], None],
+    onMoodChange: Callable[[str], None]
+) -> JsxElement {
     has isRecording: bool = False,
         transcript: str = "",
-        reply: str = "";
+        reply: str = "",
+        history: list = [];
 
     can with entry {
         SpeechRecognitionCls = window.SpeechRecognition if window.SpeechRecognition else window.webkitSpeechRecognition;

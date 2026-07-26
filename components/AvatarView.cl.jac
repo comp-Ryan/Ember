@@ -1,16 +1,21 @@
 """Ember's visual presence (avatar track boundary).
 
-Two swappable looks for Ember, picked with a small "Circle" / "Fox" toggle
-owned entirely by this file: the original calm breathing circle, and Fox, a
-warm critter face built from plain nested divs and inline styles (no image
-assets, no separate stylesheet - same one-file rule as the rest of this
-component). Swap in a third rendering later the same way, without touching
-anything outside this file. This component's contract with the rest of the
+Three swappable looks for Ember, picked with a small "Circle" / "Fox" /
+"3D" toggle owned entirely by this file: the original calm breathing
+circle, Fox, a warm critter face built from plain nested divs and inline
+styles (no image assets, no separate stylesheet - same one-file rule as
+the rest of this component), and 3D, a Ready Player Me model rendered via
+Avatar3DView.cl.jac (its own isolated file/lifecycle, so a WebGL or
+model-load problem there can never break Circle or Fox). This component's
+contract with the rest of the
 app is two props: `isSpeaking` (a slow gentle breathing pulse while false, a
 faster brighter pulse while true - Fox also gets a talking mouth on top of
 that same pulse) and `mood` (tints the idle/listening pulse's color and
 pace - "calm" / "cheerful" / "concerned" - and defaults to "calm" if omitted
-or unrecognized).
+or unrecognized). Fox also expresses mood through its eyebrows (raised for
+cheerful, gently furrowed for concerned) rather than a color/fur change -
+an expression reads more naturally on an already-has-a-face critter than a
+tint would, and keeps the color language reserved for "is Ember talking?".
 
 Large, high-contrast, and free of small/busy detail on purpose - built for
 elderly users who need the "is Ember talking?" state readable at a glance.
@@ -24,6 +29,7 @@ CSS keyframes/a stylesheet), so it needs nothing beyond this one file.
 """
 
 import from react { useEffect }
+import from .Avatar3DView { Avatar3DView }
 
 def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
     has pulsedUp: bool = False,
@@ -33,27 +39,35 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
 
     # Idle-only presets. Speaking always uses the fixed amber values below,
     # regardless of mood, so "is Ember talking?" stays a reliable, constant cue.
+    # brow_tilt is the LEFT eyebrow's rotation in degrees; the right eyebrow
+    # always mirrors it with the opposite sign. Positive tilt lifts the left
+    # eyebrow's outer (left) end and drops its inner (right) end - mirrored,
+    # that's an outer-up arch on both brows (cheerful). Negative tilt does
+    # the opposite - an inner-up furrow on both brows (concerned).
     mood_presets = {
         "calm": {
             "color": "#219ebc", "ring_rgb": "33, 158, 188",
             "period": 1600, "amp": 1.04,
             "ring_lo": 14, "ring_hi": 20,
             "alpha_lo": 0.15, "alpha_hi": 0.22,
-            "transition": "1.5s"
+            "transition": "1.5s",
+            "brow_tilt": 0, "brow_top": "58px"
         },
         "cheerful": {
             "color": "#f4845c", "ring_rgb": "244, 132, 92",
             "period": 1300, "amp": 1.07,
             "ring_lo": 16, "ring_hi": 24,
             "alpha_lo": 0.18, "alpha_hi": 0.27,
-            "transition": "1.15s"
+            "transition": "1.15s",
+            "brow_tilt": 8, "brow_top": "53px"
         },
         "concerned": {
             "color": "#7d8fa6", "ring_rgb": "125, 143, 166",
             "period": 2200, "amp": 1.02,
             "ring_lo": 10, "ring_hi": 14,
             "alpha_lo": 0.11, "alpha_hi": 0.15,
-            "transition": "2.0s"
+            "transition": "2.0s",
+            "brow_tilt": -12, "brow_top": "61px"
         }
     };
     preset = mood_presets[mood_key];
@@ -72,6 +86,9 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
     circle_color = "#ffb703" if isSpeaking else preset["color"];
     box_shadow = f"0 0 0 {ring_spread}px rgba({ring_rgb}, {ring_alpha})";
     mouth_height = (22 if pulsedUp else 10) if isSpeaking else 10;
+    brow_top = preset["brow_top"];
+    brow_tilt = preset["brow_tilt"];
+    brow_transition = "transform 0.4s ease-in-out, top 0.4s ease-in-out";
 
     circle_view =
         <div
@@ -207,6 +224,34 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 <div
                     style={{
                         "position": "absolute",
+                        "top": brow_top,
+                        "left": "26px",
+                        "width": "24px",
+                        "height": "6px",
+                        "borderRadius": "3px",
+                        "backgroundColor": "#6b4226",
+                        "transform": f"rotate({brow_tilt}deg)",
+                        "transformOrigin": "center",
+                        "transition": brow_transition
+                    }}
+                />
+                <div
+                    style={{
+                        "position": "absolute",
+                        "top": brow_top,
+                        "right": "26px",
+                        "width": "24px",
+                        "height": "6px",
+                        "borderRadius": "3px",
+                        "backgroundColor": "#6b4226",
+                        "transform": f"rotate({-brow_tilt}deg)",
+                        "transformOrigin": "center",
+                        "transition": brow_transition
+                    }}
+                />
+                <div
+                    style={{
+                        "position": "absolute",
                         "top": "70px",
                         "left": "22px",
                         "width": "34px",
@@ -336,6 +381,8 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
             </div>
         </div>;
 
+    avatar_3d_view = <Avatar3DView isSpeaking={isSpeaking} mood={mood}/>;
+
     return
         <div
             style={{
@@ -389,9 +436,25 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 >
                     Fox
                 </button>
+                <button
+                    style={{
+                        "border": "none",
+                        "borderRadius": "999px",
+                        "padding": "0.5rem 1.1rem",
+                        "minHeight": "44px",
+                        "fontSize": "1rem",
+                        "fontWeight": "600",
+                        "cursor": "pointer",
+                        "backgroundColor": "#219ebc" if avatarStyle == "3d" else "transparent",
+                        "color": "#fff" if avatarStyle == "3d" else "#46545c"
+                    }}
+                    onClick={lambda { avatarStyle = "3d"; }}
+                >
+                    3D
+                </button>
             </div>
             <div style={{"padding": "2.75rem 0"}}>
-                {circle_view if avatarStyle == "circle" else fox_view}
+                {circle_view if avatarStyle == "circle" else (fox_view if avatarStyle == "fox" else avatar_3d_view)}
             </div>
             <p style={{"color": "#333", "fontSize": "1.25rem", "fontWeight": "600"}}>
                 {"Ember is speaking..." if isSpeaking else "Ember is listening"}

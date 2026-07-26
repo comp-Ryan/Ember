@@ -21,8 +21,15 @@ impl VoiceControls.handle_transcript(text: str) -> None {
     transcript = text;
     result = root spawn SendMessage(text=text);
     if result.reports and len(result.reports) > 0 {
-        reply = result.reports[0].reply;
-        speak(reply);
+        chat = result.reports[0];
+        reply = chat.reply;
+        history = history + [
+            {"speaker": "user", "text": text},
+            {"speaker": "ember", "text": chat.reply}
+        ];
+        onHistoryChange(history);
+        onMoodChange(chat.mood);
+        speak(chat.reply);
     }
 }
 

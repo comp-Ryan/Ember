@@ -7,19 +7,25 @@ lives entirely in `components/AvatarView.cl.jac`. Neither of those files
 imports the other - this parent is the only thing that talks to both, by
 owning `isSpeaking` and passing it down as a prop / callback.
 
-Also owns `mood` ("calm" / "cheerful" / "concerned"), passed down to
-AvatarView the same way. There's no real mood-detection signal yet (e.g.
-from conversation sentiment), so for now this is surfaced as a small manual
-picker here - swap the picker for a real signal later without touching
-AvatarView, which only ever cares about the `mood` string it's handed.
+Also owns `mood` ("calm" / "cheerful" / "concerned") and `history` (every
+turn of the conversation so far), fed by VoiceControls' `onMoodChange` /
+`onHistoryChange` callbacks - the real ChatReply.mood from each
+SendMessage call, plus the running `{"speaker", "text"}` list built up
+turn by turn. The Calm/Cheerful/Concerned picker below is a manual
+override on top of that real mood signal, kept around for testing/demo
+since a fresh page has no conversation yet to derive mood from. `history`
+is passed straight through to CaptionDisplay.cl.jac, which renders it as
+a scrollable transcript alongside the avatar/voice column.
 """
 
 import from .components.VoiceControls { VoiceControls }
 import from .components.AvatarView { AvatarView }
+import from .components.CaptionDisplay { CaptionDisplay }
 
 def:pub app -> JsxElement {
     has isSpeaking: bool = False,
-        mood: str = "calm";
+        mood: str = "calm",
+        history: list = [];
 
     return
         <div
@@ -109,13 +115,29 @@ def:pub app -> JsxElement {
                     "display": "flex",
                     "flexDirection": "row",
                     "gap": "3rem",
-                    "alignItems": "center",
+                    "alignItems": "flex-start",
                     "justifyContent": "center",
                     "flexWrap": "wrap"
                 }}
             >
-                <AvatarView isSpeaking={isSpeaking} mood={mood}/>
-                <VoiceControls onSpeakingChange={lambda (speaking: bool) { isSpeaking = speaking; }}/>
+                <div
+                    style={{
+                        "display": "flex",
+                        "flexDirection": "row",
+                        "gap": "3rem",
+                        "alignItems": "center",
+                        "justifyContent": "center",
+                        "flexWrap": "wrap"
+                    }}
+                >
+                    <AvatarView isSpeaking={isSpeaking} mood={mood}/>
+                    <VoiceControls
+                        onSpeakingChange={lambda (speaking: bool) { isSpeaking = speaking; }}
+                        onHistoryChange={lambda (h: list) { history = h; }}
+                        onMoodChange={lambda (m: str) { mood = m; }}
+                    />
+                </div>
+                <CaptionDisplay history={history}/>
             </div>
         </div>;
 }
