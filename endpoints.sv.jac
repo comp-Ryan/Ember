@@ -13,6 +13,48 @@ so the UI gets `.author` / `.text` dot access instead of untyped dict keys.
 """
 
 import from datetime { datetime }
+import time;
+import from jaclang.runtimelib.exceptions { WriteConflict }
+
+"""The runtime raises this generic ValueError (not WriteConflict) when a
+reference is resolved after the anchor it points to was already deleted
+by a concurrent writer - e.g. re-deleting a ReminderLog someone else's
+request just removed. Same root cause as WriteConflict (racing writers
+on root-anchored state); treat it the same way."""
+def _is_stale_anchor_error(exc: ValueError) -> bool {
+    return "is not a validreference" in str(exc);
+}
+
+"""Run `fn` (a zero-arg callable that re-reads graph state fresh each
+call and applies a mutation) up to 3 times, retrying only on a detected
+write conflict. Any other exception propagates immediately."""
+def with_conflict_retry(fn: any, label: str) -> any {
+    max_attempts = 3;
+    attempt = 0;
+    while True {
+        attempt += 1;
+        try {
+            return fn();
+        } except WriteConflict as wc {
+            if attempt >= max_attempts {
+                raise RuntimeError(
+                    f"{label}: gave up after {max_attempts} attempts due to concurrent writes ({wc.message()})"
+                );
+            }
+            time.sleep(0.05 * attempt);
+        } except ValueError as ve {
+            if not _is_stale_anchor_error(ve) {
+                raise ve;
+            }
+            if attempt >= max_attempts {
+                raise RuntimeError(
+                    f"{label}: gave up after {max_attempts} attempts due to concurrent writes (stale reference: {str(ve)})"
+                );
+            }
+            time.sleep(0.05 * attempt);
+        }
+    }
+}
 
 node Message {
     has author: str,
@@ -145,18 +187,21 @@ sem relevant_memory.message = "The user's latest message.";
 sem relevant_memory.facts = "Known facts about the user, each a short string. Empty list if none exist yet.";
 
 def log_checkin(mood_score: int, snippet: str) -> CheckInResult {
-    checkin = root ++> CheckIn(
-        mood_score=mood_score,
-        snippet=snippet,
-        timestamp=datetime.now().isoformat()
-    );
-    past = [n for n in [root -->] if isinstance(n, CheckIn)];
-    recent = past[-3:];
-    low_count = len([c for c in recent if c.mood_score <= 2]);
-    return CheckInResult(
-        check_in_id=jid(checkin),
-        alert_raised=(low_count >= 2)
-    );
+    def _do -> CheckInResult {
+        checkin = root ++> CheckIn(
+            mood_score=mood_score,
+            snippet=snippet,
+            timestamp=datetime.now().isoformat()
+        );
+        past = [n for n in [root -->] if isinstance(n, CheckIn)];
+        recent = past[-3:];
+        low_count = len([c for c in recent if c.mood_score <= 2]);
+        return CheckInResult(
+            check_in_id=jid(checkin),
+            alert_raised=(low_count >= 2)
+        );
+    }
+    return with_conflict_retry(_do, "log_checkin") as CheckInResult;
 }
 
 walker:pub SendMessage {
@@ -170,11 +215,14 @@ walker:pub SendMessage {
         personas = [n for n in [-->] if isinstance(n, PersonaNode)];
         tone = personas[0].tone if len(personas) > 0 else "warm and caring";
 
-        here ++> ConversationTurn(
-            speaker="user",
-            text=self.text,
-            timestamp=datetime.now().isoformat()
-        );
+        def _add_user_turn {
+            here ++> ConversationTurn(
+                speaker="user",
+                text=self.text,
+                timestamp=datetime.now().isoformat()
+            );
+        }
+        with_conflict_retry(_add_user_turn, "SendMessage.user_turn");
 
         turns = [n for n in [-->] if isinstance(n, ConversationTurn)];
         recent = turns[-8:];
@@ -198,21 +246,32 @@ walker:pub SendMessage {
         turn = generate_reply(tone=tone, history=history, message=self.text, due_medications=due_medications, may_remind=may_remind, memory_context=memory_context);
 
         if may_remind and turn.mentioned_reminder {
-            for m in unmentioned_due {
-                here ++> ReminderLog(medication_name=m.name, timestamp=datetime.now().isoformat());
+            def _add_reminder_logs {
+                for m in unmentioned_due {
+                    here ++> ReminderLog(medication_name=m.name, timestamp=datetime.now().isoformat());
+                }
             }
+            with_conflict_retry(_add_reminder_logs, "SendMessage.reminder_logs");
         }
 
         if turn.confirmed_medication != "" {
-            matched = [m for m in due_meds if m.name == turn.confirmed_medication];
-            if len(matched) > 0 {
-                matched[0].is_due = False;
-                matched[0].last_taken = datetime.now().strftime("%Y-%m-%d");
-                old_reminders = [n for n in [-->] if isinstance(n, ReminderLog) and n.medication_name == matched[0].name];
-                for r in old_reminders {
-                    del r;
+            def _apply_confirmed_medication {
+                # Re-read fresh each attempt: if a concurrent request already
+                # processed this same confirmation, `due_now` will no longer
+                # list it and this becomes a safe no-op instead of operating
+                # on stale (possibly already-deleted) nodes/edges.
+                due_now = [n for n in [-->] if isinstance(n, MedicationItem) and n.is_due];
+                matched = [m for m in due_now if m.name == turn.confirmed_medication];
+                if len(matched) > 0 {
+                    matched[0].is_due = False;
+                    matched[0].last_taken = datetime.now().strftime("%Y-%m-%d");
+                    old_reminders = [n for n in [-->] if isinstance(n, ReminderLog) and n.medication_name == matched[0].name];
+                    for r in old_reminders {
+                        del r;
+                    }
                 }
             }
+            with_conflict_retry(_apply_confirmed_medication, "SendMessage.confirmed_medication");
         }
 
         if turn.checkin_mood_score > 0 {
@@ -221,11 +280,14 @@ walker:pub SendMessage {
 
         chat = ChatReply(reply=turn.reply, mood=turn.mood);
 
-        here ++> ConversationTurn(
-            speaker="ember",
-            text=chat.reply,
-            timestamp=datetime.now().isoformat()
-        );
+        def _add_ember_turn {
+            here ++> ConversationTurn(
+                speaker="ember",
+                text=chat.reply,
+                timestamp=datetime.now().isoformat()
+            );
+        }
+        with_conflict_retry(_add_ember_turn, "SendMessage.ember_turn");
 
         report chat;
     }
@@ -259,19 +321,28 @@ walker:pub LogMedicationTaken {
         reports: list[ActionResult] = [];
 
     can log with Root entry {
-        matches = [n for n in [-->] if isinstance(n, MedicationItem) and n.name == self.med_id];
-        if len(matches) == 0 {
+        def _mark_taken -> str {
+            # Re-read fresh each attempt so a retry sees whatever the
+            # winning concurrent writer already committed.
+            matches = [n for n in [-->] if isinstance(n, MedicationItem) and n.name == self.med_id];
+            if len(matches) == 0 {
+                return "";
+            }
+            med = matches[0];
+            med.is_due = False;
+            med.last_taken = datetime.now().strftime("%Y-%m-%d");
+            return med.name;
+        }
+        matched_name = with_conflict_retry(_mark_taken, "LogMedicationTaken") as str;
+        if matched_name == "" {
             report ActionResult(
                 success=False,
                 message=f"No medication found matching '{self.med_id}'."
             );
         } else {
-            med = matches[0];
-            med.is_due = False;
-            med.last_taken = datetime.now().strftime("%Y-%m-%d");
             report ActionResult(
                 success=True,
-                message=f"Logged medication '{med.name}' as taken."
+                message=f"Logged medication '{matched_name}' as taken."
             );
         }
     }
