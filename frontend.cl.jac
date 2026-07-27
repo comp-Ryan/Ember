@@ -47,7 +47,7 @@ def:pub app -> JsxElement {
                         Your conversation companion
                     </p>
                     <h1 id="ember-title" style={{"margin": "0 0 0.75rem", "fontSize": "clamp(2.5rem, 7vw, 4.5rem)", "lineHeight": "0.95", "letterSpacing": "-0.045em", "color": "#3B2D22"}}>
-                        ember
+                        Ember
                     </h1>
                     <p style={{"margin": "0", "color": "#6F5D4A", "fontSize": "clamp(1.05rem, 2vw, 1.22rem)", "lineHeight": "1.6"}}>
                         A calm voice and a friendly face, for anyone who could use both.
@@ -69,7 +69,7 @@ def:pub app -> JsxElement {
                     </div>
                     <aside aria-labelledby="transcript-title" style={{"flex": "1 1 19rem", "maxWidth": "25rem", "minWidth": "min(100%, 18rem)", "boxSizing": "border-box", "padding": "1.4rem", "backgroundColor": "#FFFDF7", "border": "1px solid #D9C8AC", "borderRadius": "14px"}}>
                         <p style={{"margin": "0 0 0.3rem", "fontFamily": "ui-monospace, 'Courier New', monospace", "fontSize": "0.76rem", "fontWeight": "700", "letterSpacing": "0.1em", "color": "#C94F08", "textTransform": "uppercase"}}>Read along</p>
-                        <h2 id="transcript-title" style={{"margin": "0 0 1rem", "fontSize": "1.55rem", "color": "#3B2D22"}}>Conversation captions</h2>
+                        <h2 id="transcript-title" style={{"margin": "0 0 1rem", "fontSize": "1.55rem", "color": "#3B2D22"}}>Reminders</h2>
                         <CaptionDisplay history={history}/>
                     </aside>
                 </div>
