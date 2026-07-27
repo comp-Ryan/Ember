@@ -128,6 +128,12 @@ node ReminderLog {
         timestamp: str;
 }
 
+node ManualReminder {
+    has label: str,
+        time: str,
+        created_at: str;
+}
+
 node CheckIn {
     has mood_score: int,
         snippet: str,
@@ -149,6 +155,11 @@ obj CheckInResult {
         alert_raised: bool;
 }
 
+obj ReminderItem {
+    has label: str,
+        time: str;
+}
+
 sem ChatReply.reply = "Ember's spoken reply to the user - short, specific to what they actually said, and phrased the way a real person talks out loud, in her caring-companion voice. Never robotic or clinical, never jargon, and never a stock therapist line like 'it's okay to feel that way' or 'I'm here for you.'";
 sem ChatReply.mood = "The emotional tone of the conversation so far, exactly one of: calm, cheerful, concerned.";
 
@@ -161,20 +172,21 @@ obj EmberTurn {
         mentioned_reminder: bool;
 }
 
-sem EmberTurn.reply = "Ember's spoken reply to the user - short, specific to what they actually said, and phrased the way a real person talks out loud, in her caring-companion voice. Never robotic or clinical, never jargon, never a stock therapist line like 'it's okay to feel that way' or 'I'm here for you.' ONLY if may_remind is True, due_medications lists something, and the user's latest message is not distressed, urgent, or a crisis, naturally work a mention into the reply - casual, like a companion who happens to remember, e.g. 'Before we chat more, don't forget your morning insulin - have you taken it yet?' - never a clinical alert. If may_remind is False or the user is distressed, do NOT mention any medication reminder this turn, no matter what due_medications contains - just respond naturally to what the user actually said. If the user's latest message confirms they just took a due medication, don't remind them of it again - warmly acknowledge that instead. If one of memory_facts is clearly relevant, you MAY naturally weave that single fact into your reply (e.g. asking how Emma's birthday planning is going, if the user brought up family) - like organic recall, never a forced callback; otherwise do not reference a memory fact.";
+sem EmberTurn.reply = "Ember's spoken reply to the user - short, specific to what they actually said, and phrased the way a real person talks out loud, in her caring-companion voice. Never robotic or clinical, never jargon, never a stock therapist line like 'it's okay to feel that way' or 'I'm here for you.' ONLY if may_remind is True, due_medications or due_manual_reminders lists something, and the user's latest message is not distressed, urgent, or a crisis, naturally work a mention of ONE due item into the reply - casual, like a companion who happens to remember, e.g. 'Before we chat more, don't forget your morning insulin - have you taken it yet?' or 'Don't forget - you wanted a reminder to call the dentist at 2pm today.' - never a clinical alert. If may_remind is False or the user is distressed, do NOT mention any reminder this turn, no matter what due_medications or due_manual_reminders contains - just respond naturally to what the user actually said. If the user's latest message confirms they just took a due medication, don't remind them of it again - warmly acknowledge that instead (manual reminders don't support this kind of confirmation yet - just mention them naturally when due). If one of memory_facts is clearly relevant, you MAY naturally weave that single fact into your reply (e.g. asking how Emma's birthday planning is going, if the user brought up family) - like organic recall, never a forced callback; otherwise do not reference a memory fact.";
 sem EmberTurn.mood = "The emotional tone of the conversation so far, exactly one of: calm, cheerful, concerned.";
-sem EmberTurn.mentioned_reminder = "True if and only if the 'reply' text you just wrote actually includes a mention of a medication reminder this turn. Must be False whenever may_remind is False, and False whenever your reply doesn't bring up a medication at all.";
+sem EmberTurn.mentioned_reminder = "True if and only if the 'reply' text you just wrote actually includes a mention of a due medication or manual reminder this turn. Must be False whenever may_remind is False, and False whenever your reply doesn't bring up a reminder at all.";
 sem EmberTurn.confirmed_medication = "Set this field ONLY when the user's latest message states or implies they just took one of the medications listed in due_medications (trigger phrases include things like 'yes I took it', 'just took my insulin', 'I already did that'). The value must be copied EXACTLY, character for character, from the 'name' portion of the matching due_medications entry (e.g. 'Lispro Insulin') - never the user's own words, never a paraphrase, never the trigger phrase itself. If nothing in the user's message confirms taking a medication, this must be the empty string \"\".";
 sem EmberTurn.checkin_mood_score = "If the user's latest message shares how they're feeling or how their day/life is going (emotionally, not just neutral factual chit-chat like asking the time), rate their mood on a 1-5 scale: 1 = very distressed or down, 2 = somewhat down or struggling, 3 = neutral/okay, 4 = good, 5 = great. If the message doesn't share anything about their mood or how their day is going, this must be exactly 0.";
 sem EmberTurn.checkin_snippet = "A short, neutral, third-person summary of what the user shared about their mood or day, suitable for a private wellness log (e.g. 'Feeling lonely and low energy today.'). Empty string \"\" if checkin_mood_score is 0.";
 
-def generate_reply(tone: str, history: list[str], message: str, due_medications: list[str], may_remind: bool, memory_facts: list[str]) -> EmberTurn by llm();
-sem generate_reply = "Ember is a real companion talking to someone she knows, not a wellness app or a therapist. Write her natural, spoken reply to the user's latest message: react like an actual person would in conversation - pick up on a specific detail in what they said, and respond with genuine personality, maybe a small observation, a memory, or a real follow-up question, instead of a generic reassurance. Speak in the given persona tone and use the conversation history for context, but do not fall back on scripted comfort phrases ('it's okay to feel that way', 'I'm here for you', 'that sounds difficult', 'thank you for sharing that') - a real friend wouldn't talk like a hotline script. Recognize when the user confirms taking a due medication regardless of may_remind. Weave in a reminder per EmberTurn.reply's may_remind guidance, and select a memory only per its memory_facts guidance. Separately, and without changing how you phrase your reply, assess whether the user's latest message shares how they're feeling or how their day is going, for a private wellness check-in log. Then judge the overall mood of the conversation.";
+def generate_reply(tone: str, history: list[str], message: str, due_medications: list[str], due_manual_reminders: list[str], may_remind: bool, memory_facts: list[str]) -> EmberTurn by llm();
+sem generate_reply = "Ember is a real companion talking to someone she knows, not a wellness app or a therapist. Write her natural, spoken reply to the user's latest message: react like an actual person would in conversation - pick up on a specific detail in what they said, and respond with genuine personality, maybe a small observation, a memory, or a real follow-up question, instead of a generic reassurance. Speak in the given persona tone and use the conversation history for context, but do not fall back on scripted comfort phrases ('it's okay to feel that way', 'I'm here for you', 'that sounds difficult', 'thank you for sharing that') - a real friend wouldn't talk like a hotline script. Recognize when the user confirms taking a due medication regardless of may_remind. Weave in a reminder (medication or manual) per EmberTurn.reply's may_remind guidance, and select a memory only per its memory_facts guidance. Separately, and without changing how you phrase your reply, assess whether the user's latest message shares how they're feeling or how their day is going, for a private wellness check-in log. Then judge the overall mood of the conversation.";
 sem generate_reply.tone = "Ember's persona - how she should sound, e.g. warm, patient, simple everyday language, never robotic or clinical, like a caring companion.";
 sem generate_reply.history = "Recent conversation turns as 'speaker: text' lines, oldest first, ending with the user's latest message.";
 sem generate_reply.message = "The user's latest message, which Ember is replying to.";
 sem generate_reply.due_medications = "Medications currently due, each formatted as 'name (dosage) - scheduled for schedule_time'. Used ONLY to recognize a confirmation ('yes I took it') - never proactively mention one of these unless may_remind is also True. Empty list if nothing is due right now.";
-sem generate_reply.may_remind = "True when an unmentioned medication is due. Even when True, do not mention it if the user's latest message signals emotional distress, urgency, or a crisis - e.g. panic, a medical emergency, intense grief, fear, or saying they're struggling badly right now. Ordinary tiredness, mild complaints, or casual chit-chat do not count as distress. When False, do not bring up any medication reminder in your reply no matter what due_medications contains.";
+sem generate_reply.due_manual_reminders = "User-created reminders currently due (not medications - things like appointments or errands), each formatted as 'label - scheduled for time'. Used the same way as due_medications for proactively mentioning when may_remind is True, but these can never be 'confirmed taken' - just mention them naturally. Empty list if none exist.";
+sem generate_reply.may_remind = "True when an unmentioned medication or manual reminder is due. Even when True, do not mention it if the user's latest message signals emotional distress, urgency, or a crisis - e.g. panic, a medical emergency, intense grief, fear, or saying they're struggling badly right now. Ordinary tiredness, mild complaints, or casual chit-chat do not count as distress. When False, do not bring up any reminder in your reply no matter what due_medications or due_manual_reminders contains.";
 sem generate_reply.memory_facts = "Known facts about the user. Select at most one only when it is genuinely relevant to their latest message and would feel natural in conversation; otherwise use none. Never invent, paraphrase, or force a callback. Empty list if no facts are available.";
 
 def log_checkin(mood_score: int, snippet: str) -> CheckInResult {
@@ -222,20 +234,27 @@ walker:pub SendMessage {
         due_meds = [n for n in [-->] if isinstance(n, MedicationItem) and n.is_due];
         due_medications = [f"{m.name} ({m.dosage}) - scheduled for {m.schedule_time}" for m in due_meds];
 
+        manual_reminders = [n for n in [-->] if isinstance(n, ManualReminder)];
+        due_manual_reminders = [f"{m.label} - scheduled for {m.time}" for m in manual_reminders];
+
         already_reminded = [r.medication_name for r in [n for n in [-->] if isinstance(n, ReminderLog)]];
         unmentioned_due = [m for m in due_meds if m.name not in already_reminded];
+        unmentioned_manual = [m for m in manual_reminders if m.label not in already_reminded];
 
-        may_remind = len(unmentioned_due) > 0;
+        may_remind = (len(unmentioned_due) > 0) or (len(unmentioned_manual) > 0);
 
         facts = [n for n in [-->] if isinstance(n, MemoryFact)];
         fact_strings = [f.fact for f in facts];
 
-        turn = generate_reply(tone=tone, history=history, message=self.text, due_medications=due_medications, may_remind=may_remind, memory_facts=fact_strings);
+        turn = generate_reply(tone=tone, history=history, message=self.text, due_medications=due_medications, due_manual_reminders=due_manual_reminders, may_remind=may_remind, memory_facts=fact_strings);
 
         if may_remind and turn.mentioned_reminder {
             def _add_reminder_logs {
                 for m in unmentioned_due {
                     here ++> ReminderLog(medication_name=m.name, timestamp=datetime.now().isoformat());
+                }
+                for m in unmentioned_manual {
+                    here ++> ReminderLog(medication_name=m.label, timestamp=datetime.now().isoformat());
                 }
             }
             with_conflict_retry(_add_reminder_logs, "SendMessage.reminder_logs");
@@ -299,6 +318,48 @@ walker:pub GetDueMedications {
         if here.is_due {
             report here;
         }
+    }
+}
+
+walker:pub GetDueReminders {
+    """Report every currently-due reminder as a unified list - both seeded
+    medications and manually-created reminders. General-purpose equivalent
+    of GetDueMedications for anything that isn't a medication."""
+    has reports: list[ReminderItem] = [];
+
+    can collect with Root entry {
+        root spawn SeedDemoData();
+        visit [-->];
+    }
+
+    can gather_medication with MedicationItem entry {
+        if here.is_due {
+            report ReminderItem(label=f"{here.name} ({here.dosage})", time=here.schedule_time);
+        }
+    }
+
+    can gather_manual with ManualReminder entry {
+        report ReminderItem(label=here.label, time=here.time);
+    }
+}
+
+walker:pub CreateManualReminder {
+    """Create a user-added reminder (e.g. an appointment or errand, not a
+    medication). Manual creation only - Ember referencing/updating these via
+    conversation beyond a natural mention is a separate, later phase."""
+    has label: str,
+        time: str,
+        reports: list[ManualReminder] = [];
+
+    can create with Root entry {
+        def _do -> ManualReminder {
+            return here ++> ManualReminder(
+                label=self.label,
+                time=self.time,
+                created_at=datetime.now().isoformat()
+            );
+        }
+        report with_conflict_retry(_do, "CreateManualReminder") as ManualReminder;
     }
 }
 
