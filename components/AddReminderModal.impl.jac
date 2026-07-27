@@ -32,3 +32,13 @@ impl AddReminderModal.fetchReminders -> None {
     } except Exception {
     }
 }
+
+impl AddReminderModal.handleDelete(reminder_id: str) -> None {
+    try {
+        result = root spawn DeleteReminder(reminder_id=reminder_id);
+        if result.reports and len(result.reports) > 0 and result.reports[0].success {
+            fetchReminders();
+        }
+    } except Exception {
+    }
+}

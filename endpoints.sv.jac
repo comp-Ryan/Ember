@@ -156,7 +156,8 @@ obj CheckInResult {
 }
 
 obj ReminderItem {
-    has label: str,
+    has reminder_id: str,
+        label: str,
         time: str;
 }
 
@@ -334,12 +335,47 @@ walker:pub GetDueReminders {
 
     can gather_medication with MedicationItem entry {
         if here.is_due {
-            report ReminderItem(label=f"{here.name} ({here.dosage})", time=here.schedule_time);
+            report ReminderItem(reminder_id=jid(here), label=f"{here.name} ({here.dosage})", time=here.schedule_time);
         }
     }
 
     can gather_manual with ManualReminder entry {
-        report ReminderItem(label=here.label, time=here.time);
+        report ReminderItem(reminder_id=jid(here), label=here.label, time=here.time);
+    }
+}
+
+walker:pub DeleteReminder {
+    """Delete a single reminder (medication or manual) by the reminder_id
+    GetDueReminders reports on each ReminderItem. Actually removes the node
+    from persistence (plus any ReminderLog dedup entries tied to it), not
+    just hides it from the reported list."""
+    has reminder_id: str,
+        reports: list[ActionResult] = [];
+
+    can delete with Root entry {
+        def _do -> bool {
+            candidates = [
+                n for n in [-->]
+                if (isinstance(n, MedicationItem) or isinstance(n, ManualReminder)) and jid(n) == self.reminder_id
+            ];
+            if len(candidates) == 0 {
+                return False;
+            }
+            target = candidates[0];
+            key = target.name if isinstance(target, MedicationItem) else target.label;
+            old_logs = [n for n in [-->] if isinstance(n, ReminderLog) and n.medication_name == key];
+            for r in old_logs {
+                del r;
+            }
+            del target;
+            return True;
+        }
+        deleted = with_conflict_retry(_do, "DeleteReminder") as bool;
+        if deleted {
+            report ActionResult(success=True, message="Reminder deleted.");
+        } else {
+            report ActionResult(success=False, message=f"No reminder found matching '{self.reminder_id}'.");
+        }
     }
 }
 
@@ -417,23 +453,10 @@ walker SeedDemoData {
                 tone="warm, patient, uses simple everyday language - never robotic or clinical, speaks like a caring companion and avoids jargon"
             );
         }
-        existing_meds = [n for n in [-->] if isinstance(n, MedicationItem)];
-        if len(existing_meds) == 0 {
-            here ++> MedicationItem(
-                name="Lispro Insulin",
-                dosage="10 units",
-                schedule_time="9:00 AM",
-                last_taken="",
-                is_due=True
-            );
-            here ++> MedicationItem(
-                name="Blood Pressure Medication",
-                dosage="1 tablet",
-                schedule_time="8:00 PM",
-                last_taken="2026-07-25",
-                is_due=False
-            );
-        }
+        # Demo medications are intentionally no longer auto-seeded: the
+        # Reminders panel should start empty and stay that way until the
+        # user adds something via "+ Add reminder" - reminders are no
+        # longer created from hardcoded fixture data.
         existing_memories = [n for n in [-->] if isinstance(n, MemoryFact)];
         if len(existing_memories) == 0 {
             here ++> MemoryFact(
