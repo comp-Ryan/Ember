@@ -78,7 +78,6 @@ def:pub VoiceControls(
 
     return
         <section aria-label="Voice conversation" style={{"display": "flex", "flexDirection": "column", "alignItems": "center", "gap": "0.85rem", "padding": "1rem", "width": "min(100%, 17rem)", "boxSizing": "border-box", "textAlign": "center"}}>
-            <p style={{"margin": "0", "fontFamily": "ui-monospace, 'Courier New', monospace", "fontSize": "0.78rem", "fontWeight": "700", "letterSpacing": "0.1em", "color": "#6F5D4A", "textTransform": "uppercase"}}>Speak with Ember</p>
             <button onClick={toggleRecording} aria-label={"Stop listening" if isRecording else "Start talking to Ember"} aria-pressed={isRecording} style={{"width": "96px", "height": "96px", "borderRadius": "50%", "border": "5px solid #FFF9EE", "outline": "2px solid #F36B12", "outlineOffset": "3px", "cursor": "pointer", "display": "flex", "alignItems": "center", "justifyContent": "center", "backgroundColor": "#C94F08" if isRecording else "#F36B12", "boxShadow": "0 7px 0 #A94108", "transition": "background-color 180ms ease, transform 180ms ease"}}>
                 <ThinkingOrb state="listening" size={64} theme="light" paused={not isRecording}/>
             </button>

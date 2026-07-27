@@ -97,7 +97,6 @@ def:pub app -> JsxElement {
                         />
                     </div>
                     <aside aria-labelledby="transcript-title" style={{"flex": "1 1 19rem", "maxWidth": "25rem", "minWidth": "min(100%, 18rem)", "boxSizing": "border-box", "padding": "1.4rem", "backgroundColor": "#FFFDF7", "border": "1px solid #D9C8AC", "borderRadius": "14px"}}>
-                        <p style={{"margin": "0 0 0.3rem", "fontFamily": "ui-monospace, 'Courier New', monospace", "fontSize": "0.76rem", "fontWeight": "700", "letterSpacing": "0.1em", "color": "#C94F08", "textTransform": "uppercase"}}>Read along</p>
                         <h2 id="transcript-title" style={{"margin": "0 0 1rem", "fontSize": "1.55rem", "color": "#3B2D22"}}>Reminders</h2>
                         <AddReminderModal/>
                         <CaptionDisplay history={history}/>
