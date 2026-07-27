@@ -30,6 +30,5 @@ impl AddReminderModal.fetchReminders -> None {
             reminders = result.reports;
         }
     } except Exception {
-        pass;
     }
 }
