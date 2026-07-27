@@ -143,55 +143,66 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm", modelKey: str = "harr
                 model_url,
                 lambda (gltf: any) {
                     model = gltf.scene;
+                    model.updateMatrixWorld(True);
 
-                    # Generic per-model normalization: measure whatever
-                    # loaded, then recenter + rescale so every model stands
-                    # the same way regardless of its own export scale or
-                    # pivot - no per-model hardcoded numbers.
-                    box = new(Box3);
-                    box.setFromObject(model);
-                    size = new(Vector3);
-                    box.getSize(size);
+                    if model_key == "harry" {
+                        # Preserve Harry's original, proven close portrait.
+                        # Skinned Ready Player Me bounds can be stale before
+                        # the skeleton updates, which caused the generic fit
+                        # path to frame only his legs.
+                        model.position.set(0, 0, 0);
+                        model.scale.setScalar(1.0);
+                        baseScaleRef.current = 1.0;
+                        basePositionYRef.current = 0.0;
+                        scene.add(model);
+                        camera.fov = 40;
+                        camera.updateProjectionMatrix();
+                        camera.position.set(0, 1.38, 1.25);
+                        camera.lookAt(0, 1.38, 0);
+                    } else {
+                        # Penguin is an unrigged static mesh, so its bounds
+                        # are reliable and can drive automatic full fitting.
+                        box = new(Box3);
+                        box.setFromObject(model);
+                        size = new(Vector3);
+                        box.getSize(size);
 
-                    size_y = size.y as float;
-                    raw_height = size_y if size_y > 0.001 else 1.0;
-                    target_height = 1.8;
-                    scale_factor = target_height / raw_height;
-                    model.scale.setScalar(scale_factor);
-                    baseScaleRef.current = scale_factor;
+                        size_y = size.y as float;
+                        raw_height = size_y if size_y > 0.001 else 1.0;
+                        target_height = 1.8;
+                        scale_factor = target_height / raw_height;
+                        model.scale.setScalar(scale_factor);
+                        baseScaleRef.current = scale_factor;
 
-                    # Re-measure after scaling, then translate so the model
-                    # is horizontally centered and its feet sit at y=0.
-                    box.setFromObject(model);
-                    center = new(Vector3);
-                    box.getCenter(center);
-                    model.position.x = (model.position.x as float) - (center.x as float);
-                    model.position.z = (model.position.z as float) - (center.z as float);
-                    model.position.y = (model.position.y as float) - (box.min.y as float);
-                    basePositionYRef.current = model.position.y;
-                    scene.add(model);
+                        model.updateMatrixWorld(True);
+                        box.setFromObject(model);
+                        center = new(Vector3);
+                        box.getCenter(center);
+                        model.position.x = (model.position.x as float) - (center.x as float);
+                        model.position.z = (model.position.z as float) - (center.z as float);
+                        model.position.y = (model.position.y as float) - (box.min.y as float);
+                        basePositionYRef.current = model.position.y;
+                        scene.add(model);
+
+                        model.updateMatrixWorld(True);
+                        box.setFromObject(model);
+                        box.getSize(size);
+                        box.getCenter(center);
+                        total_width_x = size.x as float;
+                        total_height_y = size.y as float;
+                        total_height = total_height_y if total_height_y > 0.001 else target_height;
+                        total_width = total_width_x if total_width_x > 0.001 else total_height * 0.6;
+                        total_depth = size.z as float;
+                        half_v_fov = ((camera.fov as float) * 3.14159265) / 360;
+                        half_h_fov = Math.atan(Math.tan(half_v_fov) * (camera.aspect as float));
+                        vertical_distance = (total_height / 2) / Math.tan(half_v_fov);
+                        horizontal_distance = (total_width / 2) / Math.tan(half_h_fov);
+                        fit_distance = vertical_distance if vertical_distance > horizontal_distance else horizontal_distance;
+                        camera_z = (center.z as float) + (total_depth / 2) + (fit_distance * 1.14);
+                        camera.position.set(center.x, center.y, camera_z);
+                        camera.lookAt(center.x, center.y, center.z);
+                    }
                     modelRootRef.current = model;
-
-                    # Fit the complete normalized bounds in the shared 7:8
-                    # canvas. Account for both vertical and horizontal FOV
-                    # so wide models do not clip at the sides and tall
-                    # models never collapse to a legs-only crop.
-                    box.setFromObject(model);
-                    box.getSize(size);
-                    box.getCenter(center);
-                    total_width_x = size.x as float;
-                    total_height_y = size.y as float;
-                    total_height = total_height_y if total_height_y > 0.001 else target_height;
-                    total_width = total_width_x if total_width_x > 0.001 else total_height * 0.6;
-                    total_depth = size.z as float;
-                    half_v_fov = ((camera.fov as float) * 3.14159265) / 360;
-                    half_h_fov = Math.atan(Math.tan(half_v_fov) * (camera.aspect as float));
-                    vertical_distance = (total_height / 2) / Math.tan(half_v_fov);
-                    horizontal_distance = (total_width / 2) / Math.tan(half_h_fov);
-                    fit_distance = vertical_distance if vertical_distance > horizontal_distance else horizontal_distance;
-                    camera_z = (center.z as float) + (total_depth / 2) + (fit_distance * 1.14);
-                    camera.position.set(center.x, center.y, camera_z);
-                    camera.lookAt(center.x, center.y, center.z);
 
                     # Morph targets are named per source rig - Ready Player
                     # Me exposes "mouthOpen" on named head/teeth meshes; an
