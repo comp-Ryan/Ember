@@ -247,7 +247,18 @@ walker:pub SendMessage {
         facts = [n for n in [-->] if isinstance(n, MemoryFact)];
         fact_strings = [f.fact for f in facts];
 
-        turn = generate_reply(tone=tone, history=history, message=self.text, due_medications=due_medications, due_manual_reminders=due_manual_reminders, may_remind=may_remind, memory_facts=fact_strings);
+        try {
+            turn = generate_reply(tone=tone, history=history, message=self.text, due_medications=due_medications, due_manual_reminders=due_manual_reminders, may_remind=may_remind, memory_facts=fact_strings);
+        } except Exception {
+            turn = EmberTurn(
+                reply="Sorry, I'm having a little trouble right now - mind trying that again?",
+                mood="calm",
+                confirmed_medication="",
+                checkin_mood_score=0,
+                checkin_snippet="",
+                mentioned_reminder=False
+            );
+        }
 
         if may_remind and turn.mentioned_reminder {
             def _add_reminder_logs {
