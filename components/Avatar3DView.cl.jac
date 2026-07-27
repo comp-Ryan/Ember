@@ -157,8 +157,8 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm", modelKey: str = "harr
                         scene.add(model);
                         camera.fov = 40;
                         camera.updateProjectionMatrix();
-                        camera.position.set(0, 1.38, 1.25);
-                        camera.lookAt(0, 1.38, 0);
+                        camera.position.set(0, 1.48, 1.25);
+                        camera.lookAt(0, 1.48, 0);
                     } else {
                         # Penguin is an unrigged static mesh, so its bounds
                         # are reliable and can drive automatic full fitting.
