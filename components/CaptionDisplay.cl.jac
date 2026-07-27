@@ -96,50 +96,20 @@ def:pub CaptionDisplay(history: list) -> JsxElement {
     ];
 
     return
-        <div
-            style={{
-                "width": "100%",
-                "maxWidth": "22rem",
-                "boxSizing": "border-box",
-                "display": "flex",
-                "flexDirection": "column",
-                "borderRadius": "20px",
-                "backgroundColor": "#ffffff",
-                "border": "2px solid #e3e9eb"
-            }}
-        >
-            <h2
-                style={{
-                    "margin": "0",
-                    "padding": "1rem 1.25rem 0.75rem",
-                    "fontSize": "1.1rem",
-                    "color": "#14424f",
-                    "borderBottom": "1px solid #e3e9eb"
-                }}
-            >
-                Conversation
-            </h2>
-            <div
-                style={{
-                    "padding": "1.1rem 1.25rem",
-                    "maxHeight": "28rem",
-                    "overflowY": "auto"
-                }}
-            >
-                {
-                    bubbles if len(history) > 0 else
-                    <p
-                        style={{
-                            "margin": "0",
-                            "fontSize": "1.05rem",
-                            "lineHeight": "1.5",
-                            "fontStyle": "italic",
-                            "color": "#8a97a0"
-                        }}
-                    >
-                        {placeholder}
-                    </p>
-                }
-            </div>
+        <div style={{"width": "100%", "maxWidth": "22rem", "boxSizing": "border-box"}}>
+            {
+                bubbles if len(history) > 0 else
+                <p
+                    style={{
+                        "margin": "0",
+                        "fontSize": "1.05rem",
+                        "lineHeight": "1.5",
+                        "fontStyle": "italic",
+                        "color": "#8a97a0"
+                    }}
+                >
+                    {placeholder}
+                </p>
+            }
         </div>;
 }
