@@ -46,7 +46,7 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
     # the opposite - an inner-up furrow on both brows (concerned).
     mood_presets = {
         "calm": {
-            "color": "#219ebc", "ring_rgb": "33, 158, 188",
+            "color": "#D85B12", "ring_rgb": "216, 91, 18",
             "period": 1600, "amp": 1.04,
             "ring_lo": 14, "ring_hi": 20,
             "alpha_lo": 0.15, "alpha_hi": 0.22,
@@ -54,7 +54,7 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
             "brow_tilt": 0, "brow_top": "58px"
         },
         "cheerful": {
-            "color": "#f4845c", "ring_rgb": "244, 132, 92",
+            "color": "#F36B12", "ring_rgb": "243, 107, 18",
             "period": 1300, "amp": 1.07,
             "ring_lo": 16, "ring_hi": 24,
             "alpha_lo": 0.18, "alpha_hi": 0.27,
@@ -62,7 +62,7 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
             "brow_tilt": 8, "brow_top": "53px"
         },
         "concerned": {
-            "color": "#7d8fa6", "ring_rgb": "125, 143, 166",
+            "color": "#A6643B", "ring_rgb": "166, 100, 59",
             "period": 2200, "amp": 1.02,
             "ring_lo": 10, "ring_hi": 14,
             "alpha_lo": 0.11, "alpha_hi": 0.15,
@@ -81,9 +81,9 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
     scale = (1.18 if pulsedUp else 1.0) if isSpeaking else (preset["amp"] if pulsedUp else 1.0);
     ring_spread = (34 if pulsedUp else 18) if isSpeaking else (preset["ring_hi"] if pulsedUp else preset["ring_lo"]);
     ring_alpha = (0.42 if pulsedUp else 0.28) if isSpeaking else (preset["alpha_hi"] if pulsedUp else preset["alpha_lo"]);
-    ring_rgb = "255, 183, 3" if isSpeaking else preset["ring_rgb"];
+    ring_rgb = "243, 107, 18" if isSpeaking else preset["ring_rgb"];
     transition_duration = "0.32s" if isSpeaking else preset["transition"];
-    circle_color = "#ffb703" if isSpeaking else preset["color"];
+    circle_color = "#F36B12" if isSpeaking else preset["color"];
     box_shadow = f"0 0 0 {ring_spread}px rgba({ring_rgb}, {ring_alpha})";
     mouth_height = (22 if pulsedUp else 10) if isSpeaking else 10;
     brow_top = preset["brow_top"];
@@ -397,24 +397,25 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 style={{
                     "display": "flex",
                     "gap": "0.5rem",
-                    "backgroundColor": "#eef2f3",
+                    "backgroundColor": "#FFF9EE",
                     "padding": "0.3rem",
                     "borderRadius": "999px",
+                    "border": "1px solid #D9C8AC",
                     "position": "relative",
                     "zIndex": "2"
                 }}
             >
                 <button
                     style={{
-                        "border": "none",
+                        "border": "1px solid #D9C8AC",
                         "borderRadius": "999px",
                         "padding": "0.5rem 1.1rem",
                         "minHeight": "44px",
                         "fontSize": "1rem",
                         "fontWeight": "600",
                         "cursor": "pointer",
-                        "backgroundColor": "#219ebc" if avatarStyle == "circle" else "transparent",
-                        "color": "#fff" if avatarStyle == "circle" else "#46545c"
+                        "backgroundColor": "#C94F08" if avatarStyle == "circle" else "transparent",
+                        "color": "#FFFFFF" if avatarStyle == "circle" else "#3B2D22"
                     }}
                     onClick={lambda { avatarStyle = "circle"; }}
                 >
@@ -422,15 +423,15 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 </button>
                 <button
                     style={{
-                        "border": "none",
+                        "border": "1px solid #D9C8AC",
                         "borderRadius": "999px",
                         "padding": "0.5rem 1.1rem",
                         "minHeight": "44px",
                         "fontSize": "1rem",
                         "fontWeight": "600",
                         "cursor": "pointer",
-                        "backgroundColor": "#219ebc" if avatarStyle == "fox" else "transparent",
-                        "color": "#fff" if avatarStyle == "fox" else "#46545c"
+                        "backgroundColor": "#C94F08" if avatarStyle == "fox" else "transparent",
+                        "color": "#FFFFFF" if avatarStyle == "fox" else "#3B2D22"
                     }}
                     onClick={lambda { avatarStyle = "fox"; }}
                 >
@@ -438,25 +439,25 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 </button>
                 <button
                     style={{
-                        "border": "none",
+                        "border": "1px solid #D9C8AC",
                         "borderRadius": "999px",
                         "padding": "0.5rem 1.1rem",
                         "minHeight": "44px",
                         "fontSize": "1rem",
                         "fontWeight": "600",
                         "cursor": "pointer",
-                        "backgroundColor": "#219ebc" if avatarStyle == "3d" else "transparent",
-                        "color": "#fff" if avatarStyle == "3d" else "#46545c"
+                        "backgroundColor": "#C94F08" if avatarStyle == "3d" else "transparent",
+                        "color": "#FFFFFF" if avatarStyle == "3d" else "#3B2D22"
                     }}
                     onClick={lambda { avatarStyle = "3d"; }}
                 >
                     3D
                 </button>
             </div>
-            <div style={{"padding": "2.75rem 0"}}>
+            <div style={{"padding": "2rem 0", "borderRadius": "14px", "backgroundColor": "#FFF9EE", "border": "1px solid #D9C8AC"}}>
                 {circle_view if avatarStyle == "circle" else (fox_view if avatarStyle == "fox" else avatar_3d_view)}
             </div>
-            <p style={{"color": "#333", "fontSize": "1.25rem", "fontWeight": "600"}}>
+            <p aria-live="polite" style={{"margin": "0", "color": "#3B2D22", "fontSize": "1.15rem", "fontWeight": "700"}}>
                 {"Ember is speaking..." if isSpeaking else "Ember is listening"}
             </p>
         </div>;

@@ -77,42 +77,13 @@ def:pub VoiceControls(
     async def speak(text: str) -> None;
 
     return
-        <div
-            style={{
-                "display": "flex",
-                "flexDirection": "column",
-                "alignItems": "center",
-                "gap": "1rem",
-                "padding": "1rem",
-                "width": "264px",
-                "boxSizing": "border-box"
-            }}
-        >
-            <button
-                onClick={toggleRecording}
-                aria-label={"Stop" if isRecording else "Talk"}
-                style={{
-                    "width": "72px",
-                    "height": "72px",
-                    "borderRadius": "50%",
-                    "border": "none",
-                    "cursor": "pointer",
-                    "display": "flex",
-                    "alignItems": "center",
-                    "justifyContent": "center",
-                    "backgroundColor": "#e63946" if isRecording else "#4CAF50"
-                }}
-            >
+        <section aria-label="Voice conversation" style={{"display": "flex", "flexDirection": "column", "alignItems": "center", "gap": "0.85rem", "padding": "1rem", "width": "min(100%, 17rem)", "boxSizing": "border-box", "textAlign": "center"}}>
+            <p style={{"margin": "0", "fontFamily": "ui-monospace, 'Courier New', monospace", "fontSize": "0.78rem", "fontWeight": "700", "letterSpacing": "0.1em", "color": "#6F5D4A", "textTransform": "uppercase"}}>Speak with Ember</p>
+            <button onClick={toggleRecording} aria-label={"Stop listening" if isRecording else "Start talking to Ember"} aria-pressed={isRecording} style={{"width": "96px", "height": "96px", "borderRadius": "50%", "border": "5px solid #FFF9EE", "outline": "2px solid #F36B12", "outlineOffset": "3px", "cursor": "pointer", "display": "flex", "alignItems": "center", "justifyContent": "center", "backgroundColor": "#C94F08" if isRecording else "#F36B12", "boxShadow": "0 7px 0 #A94108", "transition": "background-color 180ms ease, transform 180ms ease"}}>
                 <ThinkingOrb state="listening" size={64} theme="light" paused={not isRecording}/>
             </button>
-            <p style={{"color": "#666", "textAlign": "center"}}>
-                {"Listening... (speech-to-text placeholder)" if isRecording else "Tap to talk to Ember"}
-            </p>
-            <p style={{"fontStyle": "italic", "color": "#888", "minHeight": "1.2rem", "overflowWrap": "break-word", "margin": "0"}}>
-                {transcript}
-            </p>
-            <p style={{"color": "#1a1a2e", "minHeight": "1.2rem", "overflowWrap": "break-word", "margin": "0"}}>
-                {reply}
-            </p>
-        </div>;
+            <p aria-live="polite" style={{"margin": "0.45rem 0 0", "color": "#3B2D22", "fontSize": "1.12rem", "fontWeight": "700", "lineHeight": "1.4"}}>{"Listening — tap again when you're done." if isRecording else "Tap the orange button to talk."}</p>
+            <p aria-live="polite" style={{"width": "100%", "minHeight": "1.5rem", "margin": "0.2rem 0 0", "padding": "0.65rem 0.8rem", "boxSizing": "border-box", "fontStyle": "italic", "color": "#6F5D4A", "fontSize": "1rem", "lineHeight": "1.45", "overflowWrap": "break-word", "backgroundColor": "#FFF9EE", "border": "1px solid #D9C8AC", "borderRadius": "8px"}}>{transcript if transcript else "Your words will appear here."}</p>
+            <p aria-live="polite" style={{"width": "100%", "minHeight": "1.5rem", "margin": "0", "color": "#3B2D22", "fontSize": "1rem", "lineHeight": "1.5", "overflowWrap": "break-word"}}>{reply}</p>
+        </section>;
 }

@@ -50,8 +50,8 @@ def:pub CaptionDisplay(history: list) -> JsxElement {
                         "marginBottom": "0.3rem",
                         "padding": "0.2rem 0.65rem",
                         "borderRadius": "999px",
-                        "backgroundColor": "#f4a259",
-                        "color": "#4a2e05",
+                        "backgroundColor": "#FFD2A6",
+                        "color": "#5A351D",
                         "fontSize": "0.75rem",
                         "fontWeight": "700",
                         "letterSpacing": "0.02em"
@@ -66,7 +66,7 @@ def:pub CaptionDisplay(history: list) -> JsxElement {
                             "marginBottom": "0.3rem",
                             "fontSize": "0.85rem",
                             "fontWeight": "700",
-                            "color": "#a5652e",
+                        "color": "#C94F08",
                             "letterSpacing": "0.02em"
                         }}
                     >
@@ -78,15 +78,15 @@ def:pub CaptionDisplay(history: list) -> JsxElement {
                 style={{
                     "maxWidth": "88%",
                     "boxSizing": "border-box",
-                    "padding": "0.65rem 1rem",
-                    "borderRadius": "12px",
-                    "fontSize": "1.05rem",
-                    "lineHeight": "1.45",
+                    "padding": "0.8rem 1rem",
+                    "borderRadius": "8px",
+                    "fontSize": "1.08rem",
+                    "lineHeight": "1.55",
                     "fontWeight": "500",
                     "overflowWrap": "break-word",
-                    "backgroundColor": "#eaf6fb" if is_user[i] else ("#fff3dd" if has_reminder[i] else "#fdf3e7"),
-                    "color": "#123244" if is_user[i] else "#1a1a2e",
-                    "border": "2px solid #219ebc" if is_user[i] else ("2px solid #f4a259" if has_reminder[i] else "2px solid #a5652e")
+                    "backgroundColor": "#FCE7D2" if is_user[i] else ("#FFF0D9" if has_reminder[i] else "#FFF9EE"),
+                    "color": "#3B2D22",
+                    "border": "1px solid #F36B12" if is_user[i] else ("1px solid #E6A35F" if has_reminder[i] else "1px solid #D9C8AC")
                 }}
             >
                 {history[i]["text"]}
@@ -96,16 +96,16 @@ def:pub CaptionDisplay(history: list) -> JsxElement {
     ];
 
     return
-        <div style={{"width": "100%", "maxWidth": "22rem", "boxSizing": "border-box"}}>
+        <div aria-live="polite" style={{"width": "100%", "maxWidth": "22rem", "maxHeight": "30rem", "overflowY": "auto", "boxSizing": "border-box", "paddingRight": "0.25rem"}}>
             {
                 bubbles if len(history) > 0 else
                 <p
                     style={{
                         "margin": "0",
-                        "fontSize": "1.05rem",
-                        "lineHeight": "1.5",
+                        "fontSize": "1.08rem",
+                        "lineHeight": "1.55",
                         "fontStyle": "italic",
-                        "color": "#8a97a0"
+                        "color": "#6F5D4A"
                     }}
                 >
                     {placeholder}

@@ -45,8 +45,8 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
     # the light while idle, speaking always brightens to the same warm
     # amber-ish tone and animates the model's real mouthOpen morph - never the reverse,
     # so "is Ember talking?" reads the same way across every mood here too.
-    mood_light_colors = {"calm": 0x9fd3e6, "cheerful": 0xffc9a3, "concerned": 0xb8c2d1};
-    light_color = 0xffe08a if isSpeaking else mood_light_colors[mood_key];
+    mood_light_colors = {"calm": 0xf0b06e, "cheerful": 0xffc08a, "concerned": 0xc89066};
+    light_color = 0xff9b4a if isSpeaking else mood_light_colors[mood_key];
     light_intensity = 1.6 if isSpeaking else 1.0;
 
     mountRef = useRef(None);
@@ -78,7 +78,7 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
             ambient = new(AmbientLight, 0xffffff, 0.6);
             scene.add(ambient);
 
-            key_light = new(DirectionalLight, 0x9fd3e6, 1.0);
+            key_light = new(DirectionalLight, 0xf0b06e, 1.0);
             key_light.position.set(1, 2, 2);
             scene.add(key_light);
             lightRef.current = key_light;
@@ -166,10 +166,12 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 "justifyContent": "center",
                 "padding": "1rem",
                 "boxSizing": "border-box",
-                "backgroundColor": "#f4f8f9"
+                "backgroundColor": "#FFF9EE",
+                "border": "1px solid #D9C8AC",
+                "borderRadius": "12px"
             }}
         >
-            <p style={{"margin": "0", "color": "#8a97a0", "fontSize": "1.05rem", "textAlign": "center", "maxWidth": "220px"}}>
+            <p style={{"margin": "0", "color": "#6F5D4A", "fontSize": "1.05rem", "textAlign": "center", "maxWidth": "220px"}}>
                 {overlay_text}
             </p>
         </div>;
