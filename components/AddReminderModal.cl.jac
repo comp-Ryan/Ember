@@ -5,21 +5,31 @@ small modal with just a label and a time, plus a Create button - no
 attendees, no location, no recurrence. Calls `root spawn
 CreateManualReminder(label, time)` on the shared `endpoints.sv.jac` seam.
 
+This file also owns the live reminders list shown below the button: it
+fetches `GetDueReminders` (the unified medication + manual list) once on
+mount, and again right after a successful create, so a newly-added reminder
+shows up immediately without a page refresh.
+
 Manual creation only - Ember referencing these naturally in conversation is
 already wired server-side; having Ember update/complete reminders through
 conversation is a separate, later phase and this file has no LLM involvement.
 """
 
-sv import from endpoints { CreateManualReminder }
+import from react { useEffect }
+sv import from endpoints { CreateManualReminder, GetDueReminders }
 
 def:pub AddReminderModal -> JsxElement {
     has isOpen: bool = False,
         label: str = "",
         time: str = "",
         isSubmitting: bool = False,
-        errorMessage: str = "";
+        errorMessage: str = "",
+        reminders: list = [];
 
     async def handleCreate -> None;
+    async def fetchReminders -> None;
+
+    useEffect(lambda { fetchReminders(); }, []);
 
     canSubmit = (len(label) > 0) and (len(time) > 0) and (not isSubmitting);
 
@@ -46,6 +56,39 @@ def:pub AddReminderModal -> JsxElement {
             >
                 + Add reminder
             </button>
+            <ul
+                aria-label="Current reminders"
+                style={{
+                    "listStyle": "none",
+                    "margin": "0 0 1rem",
+                    "padding": "0",
+                    "display": "flex",
+                    "flexDirection": "column",
+                    "gap": "0.5rem"
+                }}
+            >
+                {[
+                    <li
+                        key={f"reminder-{i}"}
+                        style={{
+                            "display": "flex",
+                            "justifyContent": "space-between",
+                            "alignItems": "center",
+                            "gap": "0.75rem",
+                            "padding": "0.6rem 0.85rem",
+                            "backgroundColor": "#FFF9EE",
+                            "border": "1px solid #D9C8AC",
+                            "borderRadius": "8px",
+                            "fontSize": "1rem",
+                            "color": "#3B2D22"
+                        }}
+                    >
+                        <span style={{"fontWeight": "700"}}>{reminders[i].label}</span>
+                        <span style={{"color": "#6F5D4A"}}>{reminders[i].time}</span>
+                    </li>
+                    for i in range(len(reminders))
+                ]}
+            </ul>
             {if isOpen {
                 <div
                     role="dialog"

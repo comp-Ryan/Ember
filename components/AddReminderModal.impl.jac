@@ -12,6 +12,7 @@ impl AddReminderModal.handleCreate -> None {
             isOpen = False;
             label = "";
             time = "";
+            fetchReminders();
         } else {
             errorMessage = "Couldn't save that reminder - please try again.";
         }
@@ -19,5 +20,16 @@ impl AddReminderModal.handleCreate -> None {
         errorMessage = "Couldn't save that reminder - please try again.";
     } finally {
         isSubmitting = False;
+    }
+}
+
+impl AddReminderModal.fetchReminders -> None {
+    try {
+        result = root spawn GetDueReminders();
+        if result.reports {
+            reminders = result.reports;
+        }
+    } except Exception {
+        pass;
     }
 }
