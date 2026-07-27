@@ -34,6 +34,7 @@ import from .Avatar3DView { Avatar3DView }
 def:pub AvatarView(isSpeaking: bool, mood: str = "calm", onMoodChange: Callable[[str], None] = None) -> JsxElement {
     has pulsedUp: bool = False,
         avatarStyle: str = "circle",
+        model3d: str = "harry",
         speakAmount: float = 0.5;
 
     mood_key = mood if mood in ["calm", "cheerful", "concerned"] else "calm";
@@ -394,7 +395,10 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm", onMoodChange: Callable[
             </div>
         </div>;
 
-    avatar_3d_view = <Avatar3DView isSpeaking={isSpeaking} mood={mood}/>;
+    avatar_3d_view =
+        <div style={{"width": "min(78vw, 264px)", "aspectRatio": "7 / 8", "position": "relative", "overflow": "hidden", "borderRadius": "12px"}}>
+            <Avatar3DView isSpeaking={isSpeaking} mood={mood} modelKey={model3d}/>
+        </div>;
 
     return
         <div
@@ -458,6 +462,28 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm", onMoodChange: Callable[
                     <option value="cheerful">Cheerful</option>
                     <option value="concerned">Concerned</option>
                 </select>
+                {if avatarStyle == "3d" {
+                    <select
+                        aria-label="Choose Ember's 3D model"
+                        value={model3d}
+                        onChange={lambda (e: any) { model3d = e.target.value; }}
+                        style={{
+                            "border": "1px solid #D9C8AC",
+                            "borderRadius": "999px",
+                            "padding": "0.5rem 1.1rem",
+                            "minHeight": "46px",
+                            "fontFamily": "inherit",
+                            "fontSize": "1rem",
+                            "fontWeight": "700",
+                            "cursor": "pointer",
+                            "backgroundColor": "#FFF9EE",
+                            "color": "#3B2D22"
+                        }}
+                    >
+                        <option value="harry">Harry</option>
+                        <option value="penguin">Penguin</option>
+                    </select>
+                }}
             </div>
             <div style={{"padding": "1.1rem 0", "borderRadius": "14px", "backgroundColor": "#FFF9EE", "border": "1px solid #D9C8AC"}}>
                 {circle_view if avatarStyle == "circle" else (fox_view if avatarStyle == "fox" else avatar_3d_view)}
