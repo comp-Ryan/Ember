@@ -10,3 +10,10 @@ remotion-ember-avatar/
 # harry.glb embeds all its textures as binary bufferViews already;
 # this loose unpacked copy is only useful for re-editing in Blender.
 ready-player-me-harry-potter/textures/
+
+# Same story for the penguin model: penguin_girl_plush_suit.glb (in assets/)
+# already embeds these; these folders are the raw extracted export bundle,
+# only useful for re-editing.
+/source/
+/textures/
+/penguin-girl-in-plush-penguin-suit/
