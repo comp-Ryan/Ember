@@ -17,8 +17,6 @@ red/alarming.
 """
 
 def:pub CaptionDisplay(history: list) -> JsxElement {
-    placeholder = "Ember's replies will appear here so you can read along.";
-
     is_user = [turn["speaker"] == "user" for turn in history];
     lower_texts = [turn["text"].lower() for turn in history];
     has_reminder = [
@@ -97,19 +95,6 @@ def:pub CaptionDisplay(history: list) -> JsxElement {
 
     return
         <div aria-live="polite" style={{"width": "100%", "maxWidth": "22rem", "maxHeight": "30rem", "overflowY": "auto", "boxSizing": "border-box", "paddingRight": "0.25rem"}}>
-            {
-                bubbles if len(history) > 0 else
-                <p
-                    style={{
-                        "margin": "0",
-                        "fontSize": "1.08rem",
-                        "lineHeight": "1.55",
-                        "fontStyle": "italic",
-                        "color": "#6F5D4A"
-                    }}
-                >
-                    {placeholder}
-                </p>
-            }
+            {bubbles if len(history) > 0 else None}
         </div>;
 }
