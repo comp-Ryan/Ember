@@ -31,9 +31,10 @@ CSS keyframes/a stylesheet), so it needs nothing beyond this one file.
 import from react { useEffect }
 import from .Avatar3DView { Avatar3DView }
 
-def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
+def:pub AvatarView(isSpeaking: bool, mood: str = "calm", onMoodChange: Callable[[str], None] = None) -> JsxElement {
     has pulsedUp: bool = False,
-        avatarStyle: str = "circle";
+        avatarStyle: str = "circle",
+        speakAmount: float = 0.5;
 
     mood_key = mood if mood in ["calm", "cheerful", "concerned"] else "calm";
 
@@ -78,14 +79,26 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
         return lambda { clearInterval(timer); };
     }, [isSpeaking, mood_key]);
 
-    scale = (1.18 if pulsedUp else 1.0) if isSpeaking else (preset["amp"] if pulsedUp else 1.0);
-    ring_spread = (34 if pulsedUp else 18) if isSpeaking else (preset["ring_hi"] if pulsedUp else preset["ring_lo"]);
-    ring_alpha = (0.42 if pulsedUp else 0.28) if isSpeaking else (preset["alpha_hi"] if pulsedUp else preset["alpha_lo"]);
+    # Randomized amplitude per tick while speaking (rather than flipping
+    # between two fixed values) reads as more natural chatter - a real
+    # voice doesn't pulse on a perfect metronome.
+    useEffect(lambda {
+        if not isSpeaking {
+            speakAmount = 0.5;
+            return lambda { };
+        }
+        timer = setInterval(lambda { speakAmount = 0.15 + (Math.random() * 0.85); }, 130);
+        return lambda { clearInterval(timer); };
+    }, [isSpeaking]);
+
+    scale = (1.04 + speakAmount * 0.22) if isSpeaking else (preset["amp"] if pulsedUp else 1.0);
+    ring_spread = (14 + speakAmount * 30) if isSpeaking else (preset["ring_hi"] if pulsedUp else preset["ring_lo"]);
+    ring_alpha = (0.24 + speakAmount * 0.26) if isSpeaking else (preset["alpha_hi"] if pulsedUp else preset["alpha_lo"]);
     ring_rgb = "243, 107, 18" if isSpeaking else preset["ring_rgb"];
-    transition_duration = "0.32s" if isSpeaking else preset["transition"];
+    transition_duration = "0.16s" if isSpeaking else preset["transition"];
     circle_color = "#F36B12" if isSpeaking else preset["color"];
     box_shadow = f"0 0 0 {ring_spread}px rgba({ring_rgb}, {ring_alpha})";
-    mouth_height = (22 if pulsedUp else 10) if isSpeaking else 10;
+    mouth_height = (6 + speakAmount * 28) if isSpeaking else 10;
     brow_top = preset["brow_top"];
     brow_tilt = preset["brow_tilt"];
     brow_transition = "transform 0.4s ease-in-out, top 0.4s ease-in-out";
@@ -396,65 +409,57 @@ def:pub AvatarView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
             <div
                 style={{
                     "display": "flex",
-                    "gap": "0.5rem",
-                    "backgroundColor": "#FFF9EE",
-                    "padding": "0.3rem",
-                    "borderRadius": "999px",
-                    "border": "1px solid #D9C8AC",
+                    "gap": "0.6rem",
+                    "flexWrap": "wrap",
+                    "justifyContent": "center",
                     "position": "relative",
                     "zIndex": "2"
                 }}
             >
-                <button
+                <select
+                    aria-label="Choose Ember's look"
+                    value={avatarStyle}
+                    onChange={lambda (e: any) { avatarStyle = e.target.value; }}
                     style={{
                         "border": "1px solid #D9C8AC",
                         "borderRadius": "999px",
                         "padding": "0.5rem 1.1rem",
-                        "minHeight": "44px",
+                        "minHeight": "46px",
+                        "fontFamily": "inherit",
                         "fontSize": "1rem",
-                        "fontWeight": "600",
+                        "fontWeight": "700",
                         "cursor": "pointer",
-                        "backgroundColor": "#C94F08" if avatarStyle == "circle" else "transparent",
-                        "color": "#FFFFFF" if avatarStyle == "circle" else "#3B2D22"
+                        "backgroundColor": "#FFF9EE",
+                        "color": "#3B2D22"
                     }}
-                    onClick={lambda { avatarStyle = "circle"; }}
                 >
-                    Circle
-                </button>
-                <button
+                    <option value="circle">Circle</option>
+                    <option value="fox">Fox</option>
+                    <option value="3d">3D</option>
+                </select>
+                <select
+                    aria-label="Choose Ember's mood"
+                    value={mood_key}
+                    onChange={lambda (e: any) { onMoodChange(e.target.value) if onMoodChange else None; }}
                     style={{
                         "border": "1px solid #D9C8AC",
                         "borderRadius": "999px",
                         "padding": "0.5rem 1.1rem",
-                        "minHeight": "44px",
+                        "minHeight": "46px",
+                        "fontFamily": "inherit",
                         "fontSize": "1rem",
-                        "fontWeight": "600",
+                        "fontWeight": "700",
                         "cursor": "pointer",
-                        "backgroundColor": "#C94F08" if avatarStyle == "fox" else "transparent",
-                        "color": "#FFFFFF" if avatarStyle == "fox" else "#3B2D22"
+                        "backgroundColor": "#FFF9EE",
+                        "color": "#3B2D22"
                     }}
-                    onClick={lambda { avatarStyle = "fox"; }}
                 >
-                    Fox
-                </button>
-                <button
-                    style={{
-                        "border": "1px solid #D9C8AC",
-                        "borderRadius": "999px",
-                        "padding": "0.5rem 1.1rem",
-                        "minHeight": "44px",
-                        "fontSize": "1rem",
-                        "fontWeight": "600",
-                        "cursor": "pointer",
-                        "backgroundColor": "#C94F08" if avatarStyle == "3d" else "transparent",
-                        "color": "#FFFFFF" if avatarStyle == "3d" else "#3B2D22"
-                    }}
-                    onClick={lambda { avatarStyle = "3d"; }}
-                >
-                    3D
-                </button>
+                    <option value="calm">Calm</option>
+                    <option value="cheerful">Cheerful</option>
+                    <option value="concerned">Concerned</option>
+                </select>
             </div>
-            <div style={{"padding": "2rem 0", "borderRadius": "14px", "backgroundColor": "#FFF9EE", "border": "1px solid #D9C8AC"}}>
+            <div style={{"padding": "1.1rem 0", "borderRadius": "14px", "backgroundColor": "#FFF9EE", "border": "1px solid #D9C8AC"}}>
                 {circle_view if avatarStyle == "circle" else (fox_view if avatarStyle == "fox" else avatar_3d_view)}
             </div>
             <p aria-live="polite" style={{"margin": "0", "color": "#3B2D22", "fontSize": "1.15rem", "fontWeight": "700"}}>

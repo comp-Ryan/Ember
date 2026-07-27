@@ -84,6 +84,6 @@ def:pub VoiceControls(
             </button>
             <p aria-live="polite" style={{"margin": "0.45rem 0 0", "color": "#3B2D22", "fontSize": "1.12rem", "fontWeight": "700", "lineHeight": "1.4"}}>{"Listening — tap again when you're done." if isRecording else "Tap the orange button to talk."}</p>
             <p aria-live="polite" style={{"width": "100%", "minHeight": "1.5rem", "margin": "0.2rem 0 0", "padding": "0.65rem 0.8rem", "boxSizing": "border-box", "fontStyle": "italic", "color": "#6F5D4A", "fontSize": "1rem", "lineHeight": "1.45", "overflowWrap": "break-word", "backgroundColor": "#FFF9EE", "border": "1px solid #D9C8AC", "borderRadius": "8px"}}>{transcript if transcript else "Your words will appear here."}</p>
-            <p aria-live="polite" style={{"width": "100%", "minHeight": "1.5rem", "margin": "0", "color": "#3B2D22", "fontSize": "1rem", "lineHeight": "1.5", "overflowWrap": "break-word"}}>{reply}</p>
+            <p aria-live="polite" style={{"width": "100%", "minHeight": "1.5rem", "maxHeight": "6rem", "overflowY": "auto", "margin": "0", "color": "#3B2D22", "fontSize": "1rem", "lineHeight": "1.5", "overflowWrap": "break-word", "boxSizing": "border-box"}}>{reply}</p>
         </section>;
 }

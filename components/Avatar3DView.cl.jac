@@ -65,11 +65,15 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
 
         try {
             scene = new(Scene);
-            # Close head-and-shoulders framing instead of showing the
-            # avatar's full body.
+            # Head-and-shoulders framing instead of showing the avatar's
+            # full body. Panned down from the old (0, 1.52, 1.1) so the
+            # hands/forearms clear the bottom of the 280x320 canvas,
+            # with only a small pull-back (1.1 -> 1.25) - a pan changes
+            # *which* vertical slice is framed without shrinking the
+            # subject the way a bigger dolly-back would.
             camera = new(PerspectiveCamera, 40, 280 / 320, 0.1, 100);
-            camera.position.set(0, 1.52, 1.1);
-            camera.lookAt(0, 1.52, 0);
+            camera.position.set(0, 1.38, 1.25);
+            camera.lookAt(0, 1.38, 0);
 
             renderer = new(WebGLRenderer, {"antialias": True, "alpha": True});
             renderer.setSize(280, 320);
@@ -102,22 +106,18 @@ def:pub Avatar3DView(isSpeaking: bool, mood: str = "calm") -> JsxElement {
                 }
             );
 
-            mouth_open = False;
+            # Randomized amplitude per tick (rather than a fixed open/close
+            # flap) reads as more natural chatter - a real mouth doesn't
+            # snap between exactly two positions while talking.
             timer = setInterval(lambda {
-                mouth_amount = 0.0;
-                if speakingRef.current {
-                    mouth_open = not mouth_open;
-                    mouth_amount = 0.68 if mouth_open else 0.12;
-                } else {
-                    mouth_open = False;
-                }
+                mouth_amount = (0.16 + Math.random() * 0.58) if speakingRef.current else 0.0;
                 for raw_mesh in mouthMeshesRef.current {
                     mesh = raw_mesh as any;
                     mouth_index = mesh.morphTargetDictionary["mouthOpen"];
                     mesh.morphTargetInfluences[mouth_index] = mouth_amount;
                 }
                 renderer.render(scene, camera);
-            }, 80);
+            }, 90);
 
             return lambda {
                 clearInterval(timer);
