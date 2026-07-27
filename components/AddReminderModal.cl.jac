@@ -7,8 +7,10 @@ CreateManualReminder(label, time)` on the shared `endpoints.sv.jac` seam.
 
 This file also owns the live reminders list shown below the button: it
 fetches `GetDueReminders` (the unified medication + manual list) once on
-mount, and again right after a successful create, so a newly-added reminder
-shows up immediately without a page refresh.
+mount, and again right after a successful create or delete, so the list
+always reflects persisted state without a page refresh. Each row has a
+small "x" on its right edge that calls `DeleteReminder(reminder_id)` -
+reminder_id is the same id GetDueReminders reports on every ReminderItem.
 
 Manual creation only - Ember referencing these naturally in conversation is
 already wired server-side; having Ember update/complete reminders through
@@ -16,7 +18,7 @@ conversation is a separate, later phase and this file has no LLM involvement.
 """
 
 import from react { useEffect }
-sv import from endpoints { CreateManualReminder, GetDueReminders }
+sv import from endpoints { CreateManualReminder, GetDueReminders, DeleteReminder }
 
 def:pub AddReminderModal -> JsxElement {
     has isOpen: bool = False,
@@ -28,6 +30,7 @@ def:pub AddReminderModal -> JsxElement {
 
     async def handleCreate -> None;
     async def fetchReminders -> None;
+    async def handleDelete(reminder_id: str) -> None;
 
     useEffect(lambda { fetchReminders(); }, []);
 
@@ -74,8 +77,8 @@ def:pub AddReminderModal -> JsxElement {
                             "display": "flex",
                             "justifyContent": "space-between",
                             "alignItems": "center",
-                            "gap": "0.75rem",
-                            "padding": "0.6rem 0.85rem",
+                            "gap": "0.5rem",
+                            "padding": "0.6rem 0.6rem 0.6rem 0.85rem",
                             "backgroundColor": "#FFF9EE",
                             "border": "1px solid #D9C8AC",
                             "borderRadius": "8px",
@@ -83,8 +86,28 @@ def:pub AddReminderModal -> JsxElement {
                             "color": "#3B2D22"
                         }}
                     >
-                        <span style={{"fontWeight": "700"}}>{reminders[i].label}</span>
+                        <span style={{"fontWeight": "700", "flex": "1 1 auto"}}>{reminders[i].label}</span>
                         <span style={{"color": "#6F5D4A"}}>{reminders[i].time}</span>
+                        <button
+                            onClick={lambda (_: MouseEvent) { handleDelete(reminders[i].reminder_id); }}
+                            aria-label={f"Delete reminder: {reminders[i].label}"}
+                            style={{
+                                "border": "none",
+                                "borderRadius": "999px",
+                                "width": "44px",
+                                "height": "44px",
+                                "minWidth": "44px",
+                                "flexShrink": "0",
+                                "fontSize": "1.3rem",
+                                "fontWeight": "700",
+                                "lineHeight": "1",
+                                "cursor": "pointer",
+                                "backgroundColor": "transparent",
+                                "color": "#8B5E3C"
+                            }}
+                        >
+                            ×
+                        </button>
                     </li>
                     for i in range(len(reminders))
                 ]}
