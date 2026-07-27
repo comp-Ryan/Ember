@@ -46,7 +46,7 @@ def:pub app -> JsxElement {
         >
             <div style={{"textAlign": "center", "maxWidth": "32rem"}}>
                 <h1 style={{"margin": "0 0 0.5rem", "fontSize": "2.5rem", "letterSpacing": "-0.02em", "color": "#14424f"}}>
-                    ember
+                    Ember
                 </h1>
                 <p style={{"margin": "0", "color": "#5c6b70", "fontSize": "1.05rem", "lineHeight": "1.5"}}>
                     A calm voice and a friendly face, for anyone who could use both.
