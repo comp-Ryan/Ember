@@ -43,9 +43,6 @@ def:pub app -> JsxElement {
                 }}
             >
                 <header style={{"textAlign": "center", "maxWidth": "42rem", "margin": "0 auto 2rem"}}>
-                    <p style={{"margin": "0 0 0.65rem", "color": "#C94F08", "fontFamily": "ui-monospace, 'Courier New', monospace", "fontSize": "0.78rem", "fontWeight": "700", "letterSpacing": "0.13em", "textTransform": "uppercase"}}>
-                        Your conversation companion
-                    </p>
                     <h1 id="ember-title" style={{"margin": "0 0 0.75rem", "fontSize": "clamp(2.5rem, 7vw, 4.5rem)", "lineHeight": "0.95", "letterSpacing": "-0.045em", "color": "#3B2D22"}}>
                         Ember
                     </h1>
